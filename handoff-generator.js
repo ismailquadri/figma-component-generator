@@ -1438,25 +1438,41 @@ For questions or issues:
 
   detectComponents(figmaData) {
     const components = [];
-    
+    const FigmaClient = require('./figma');
+    const figmaClient = new FigmaClient(this.figmaApiToken);
+
     function traverse(node) {
       if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
-        components.push({
+        const componentInfo = {
           id: node.id,
           name: node.name,
           type: node.type
-        });
+        };
+
+        // If it's a component set, extract variant information
+        if (node.type === 'COMPONENT_SET') {
+          const variants = figmaClient.extractVariants(node);
+          if (variants) {
+            componentInfo.variants = variants;
+            componentInfo.variantCount = variants.all ? variants.all.length : 0;
+            componentInfo.availableVariants = Object.keys(variants.byVariant || {});
+            componentInfo.availableStates = Object.keys(variants.byState || {});
+            componentInfo.availableSizes = Object.keys(variants.bySize || {});
+          }
+        }
+
+        components.push(componentInfo);
       }
-      
+
       if (node.children) {
         node.children.forEach(traverse);
       }
     }
-    
+
     if (figmaData.document) {
       traverse(figmaData.document);
     }
-    
+
     return components;
   }
 }

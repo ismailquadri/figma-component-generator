@@ -42,30 +42,46 @@ class ComponentGenerator {
       types: ''
     };
 
+    // Extract variant information if available
+    const variantInfo = this.extractVariantInfo(data);
+
     // Generate component code based on styling approach
     if (this.styling === 'tailwind') {
-      result.component = this.generateTailwindComponent(componentName, data);
+      result.component = this.generateTailwindComponent(componentName, data, variantInfo);
     } else if (this.styling === 'css') {
-      result.component = this.generateCSSComponent(componentName, data);
-      result.styles = this.generateCSSStyles(componentName, data);
+      result.component = this.generateCSSComponent(componentName, data, variantInfo);
+      result.styles = this.generateCSSStyles(componentName, data, variantInfo);
     } else if (this.styling === 'styled-components') {
-      result.component = this.generateStyledComponentsComponent(componentName, data);
+      result.component = this.generateStyledComponentsComponent(componentName, data, variantInfo);
     }
 
     // Generate Storybook story
     if (this.includeStorybook) {
-      result.storybook = this.generateStorybookStory(componentName, data);
+      result.storybook = this.generateStorybookStory(componentName, data, variantInfo);
     }
 
     // Generate TypeScript types
     if (this.includeTypescript) {
-      result.types = this.generateTypeScriptTypes(componentName, data);
+      result.types = this.generateTypeScriptTypes(componentName, data, variantInfo);
     }
 
     return result;
   }
 
-  generateTailwindComponent(componentName, data) {
+  extractVariantInfo(data) {
+    if (!data.variants) {
+      return null;
+    }
+
+    return {
+      availableVariants: data.availableVariants || ['primary', 'secondary', 'ghost'],
+      availableStates: data.availableStates || ['default', 'hover', 'active', 'disabled'],
+      availableSizes: data.availableSizes || ['small', 'medium', 'large'],
+      variantCount: data.variantCount || 0
+    };
+  }
+
+  generateTailwindComponent(componentName, data, variantInfo = null) {
     const pascalName = this.toPascalCase(componentName);
 
     // Extract real colors from Figma
@@ -121,7 +137,7 @@ export default ${pascalName};
 `;
   }
 
-  generateCSSComponent(componentName, data) {
+  generateCSSComponent(componentName, data, variantInfo = null) {
     const pascalName = this.toPascalCase(componentName);
     const kebabName = this.toKebabCase(componentName);
     const bgColor = data.fills?.[0] || '#3B82F6';
@@ -129,15 +145,21 @@ export default ${pascalName};
     const fontSize = data.typography?.fontSize || 16;
     const fontWeight = data.typography?.fontWeight || 600;
 
+    // Use variant info if available, otherwise use defaults
+    const variants = variantInfo?.availableVariants || ['primary', 'secondary', 'ghost'];
+    const sizes = variantInfo?.availableSizes || ['small', 'medium', 'large'];
+    const defaultVariant = variants[0];
+    const defaultSize = sizes[1] || 'medium';
+
     return `import React from 'react';
 import './${kebabName}.styles.css';
 
-export const ${pascalName} = ({ 
-  children, 
-  variant = 'primary',
-  size = 'medium',
+export const ${pascalName} = ({
+  children,
+  variant = '${defaultVariant}',
+  size = '${defaultSize}',
   className = '',
-  ...props 
+  ...props
 }) => {
   const baseClasses = '${kebabName}';
   const variantClasses = \`\${baseClasses}--\${variant}\`;

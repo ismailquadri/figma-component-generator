@@ -109,7 +109,7 @@ class FigmaClient {
       return null;
     }
 
-    return componentSet.children.map(child => {
+    const variants = componentSet.children.map(child => {
       // Extract variant properties from componentPropertyDefinitions
       const variantProps = {};
       if (child.componentPropertyDefinitions) {
@@ -123,9 +123,13 @@ class FigmaClient {
         });
       }
 
+      // Parse variant name to extract properties (e.g., "Button/Primary/Hover" -> {variant: "Primary", state: "Hover"})
+      const parsedName = this.parseVariantName(child.name);
+
       return {
         id: child.id,
         name: child.name,
+        parsedName,
         width: child.absoluteBoundingBox?.width || child.width,
         height: child.absoluteBoundingBox?.height || child.height,
         fills: this.extractColors(child),
@@ -141,6 +145,82 @@ class FigmaClient {
         properties: variantProps
       };
     });
+
+    // Group variants by their properties
+    return this.groupVariants(variants);
+  }
+
+  parseVariantName(name) {
+    // Split by common separators: /, , -, _
+    const parts = name.split(/[\/\-\_]/).map(part => part.trim()).filter(Boolean);
+
+    const result = {
+      component: parts[0] || name,
+      variant: 'default',
+      state: 'default',
+      size: 'medium'
+    };
+
+    // Detect common patterns
+    parts.forEach((part, index) => {
+      const lowerPart = part.toLowerCase();
+
+      // Variant detection
+      if (['primary', 'secondary', 'tertiary', 'ghost', 'outline', 'text'].includes(lowerPart)) {
+        result.variant = lowerPart;
+      }
+
+      // State detection
+      if (['hover', 'active', 'pressed', 'disabled', 'focused', 'focus'].includes(lowerPart)) {
+        result.state = lowerPart === 'focused' ? 'focus' : lowerPart;
+      }
+
+      // Size detection
+      if (['small', 'sm', 'medium', 'md', 'large', 'lg', 'xlarge', 'xl'].includes(lowerPart)) {
+        const sizeMap = {
+          'sm': 'small', 'small': 'small',
+          'md': 'medium', 'medium': 'medium',
+          'lg': 'large', 'large': 'large',
+          'xl': 'xlarge', 'xlarge': 'xlarge'
+        };
+        result.size = sizeMap[lowerPart] || lowerPart;
+      }
+    });
+
+    return result;
+  }
+
+  groupVariants(variants) {
+    const grouped = {
+      byVariant: {},
+      byState: {},
+      bySize: {},
+      all: variants
+    };
+
+    variants.forEach(variant => {
+      const { parsedName } = variant;
+
+      // Group by variant
+      if (!grouped.byVariant[parsedName.variant]) {
+        grouped.byVariant[parsedName.variant] = [];
+      }
+      grouped.byVariant[parsedName.variant].push(variant);
+
+      // Group by state
+      if (!grouped.byState[parsedName.state]) {
+        grouped.byState[parsedName.state] = [];
+      }
+      grouped.byState[parsedName.state].push(variant);
+
+      // Group by size
+      if (!grouped.bySize[parsedName.size]) {
+        grouped.bySize[parsedName.size] = [];
+      }
+      grouped.bySize[parsedName.size].push(variant);
+    });
+
+    return grouped;
   }
 
   findComponentByName(node, name) {
