@@ -106,10 +106,13 @@ export const ${pascalName} = ({
   children,
   variant = 'primary',
   size = 'medium',
+  disabled = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedby,
   className = '',
   ...props
 }) => {
-  const baseClasses = '${tailwindFontWeight} ${tailwindFontSize} ${tailwindBorderRadius} transition-colors cursor-pointer';
+  const baseClasses = '${tailwindFontWeight} ${tailwindFontSize} ${tailwindBorderRadius} transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
 
   const variantClasses = {
     primary: '${bgColor} text-white hover:opacity-90',
@@ -123,9 +126,15 @@ export const ${pascalName} = ({
     large: 'px-6 py-3 text-lg'
   };
 
+  const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
+
   return (
     <button
-      className={\`\${baseClasses} \${variantClasses[variant]} \${sizeClasses[size]} \${className}\`}
+      className={\`\${baseClasses} \${variantClasses[variant]} \${sizeClasses[size]} \${disabledClasses} \${className}\`}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedby}
+      aria-disabled={disabled}
       {...props}
     >
       {children}
@@ -158,16 +167,24 @@ export const ${pascalName} = ({
   children,
   variant = '${defaultVariant}',
   size = '${defaultSize}',
+  disabled = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedby,
   className = '',
   ...props
 }) => {
   const baseClasses = '${kebabName}';
   const variantClasses = \`\${baseClasses}--\${variant}\`;
   const sizeClasses = \`\${baseClasses}--\${size}\`;
+  const disabledClasses = disabled ? \`\${baseClasses}--disabled\` : '';
 
   return (
     <button
-      className={\`\${baseClasses} \${variantClasses} \${sizeClasses} \${className}\`}
+      className={\`\${baseClasses} \${variantClasses} \${sizeClasses} \${disabledClasses} \${className}\`}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedby}
+      aria-disabled={disabled}
       {...props}
     >
       {children}
@@ -179,7 +196,7 @@ export default ${pascalName};
 `;
   }
 
-  generateCSSStyles(componentName, data) {
+  generateCSSStyles(componentName, data, variantInfo = null) {
     const kebabName = this.toKebabCase(componentName);
 
     // If this is a component set with variants, generate styles for each variant
@@ -224,6 +241,28 @@ export default ${pascalName};
   transition: all 0.2s ease;
   padding: ${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px;
   box-shadow: ${boxShadow};
+}
+
+/* Accessibility: Focus styles for keyboard navigation */
+.${kebabName}:focus {
+  outline: 2px solid ${primaryColor};
+  outline-offset: 2px;
+}
+
+.${kebabName}:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.${kebabName}:focus-visible {
+  outline: 2px solid ${primaryColor};
+  outline-offset: 2px;
+}
+
+/* Accessibility: Disabled state */
+.${kebabName}--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .${kebabName}--primary {
