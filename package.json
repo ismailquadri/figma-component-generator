@@ -1,6 +1,6 @@
 {
   "name": "figma-component-generator",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Generate React components from Figma designs automatically",
   "main": "cli.js",
   "bin": {
@@ -57,6 +57,13 @@
     "performance-dashboard.js",
     "component-versioning.js",
     "embeddable-examples.js",
+    "dependency-graph.js",
+    "a11y-dashboard.js",
+    "team-collaboration.js",
+    "i18n-support.js",
+    "dark-mode-detector.js",
+    "addon-marketplace.js",
+    "docs-search.js",
     "README.md",
     "package.json"
   ],

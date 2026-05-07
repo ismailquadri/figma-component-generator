@@ -24,6 +24,13 @@ const FigmaPropsMapper = require('./figma-props-mapper');
 const PerformanceDashboard = require('./performance-dashboard');
 const ComponentVersioning = require('./component-versioning');
 const EmbeddableExamples = require('./embeddable-examples');
+const DependencyGraph = require('./dependency-graph');
+const AccessibilityDashboard = require('./a11y-dashboard');
+const TeamCollaboration = require('./team-collaboration');
+const I18nSupport = require('./i18n-support');
+const DarkModeDetector = require('./dark-mode-detector');
+const AddonMarketplace = require('./addon-marketplace');
+const DocumentationSearch = require('./docs-search');
 
 const configManager = new ConfigManager();
 
@@ -1584,6 +1591,255 @@ program
       console.log('');
       console.log('Share this URL to let others view the component example.');
 
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Dependency graph command
+program
+  .command('dependency-graph')
+  .description('Generate component dependency graph')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-f, --format <format>', 'Output format (svg, png, json)', 'svg')
+  .option('-o, --output <path>', 'Output file path', './dependency-graph')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🔗 Generating Dependency Graph'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Format: ${options.format}`));
+      console.log('');
+
+      const graph = new DependencyGraph({
+        directory: projectPath,
+        output: options.format,
+        outputPath: options.output
+      });
+      
+      await graph.generate();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// A11y init command
+program
+  .command('init-a11y')
+  .description('Initialize accessibility dashboard')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('♿ Setting up Accessibility Dashboard'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const a11y = new AccessibilityDashboard({ directory: projectPath });
+      await a11y.init();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// A11y check command
+program
+  .command('a11y-check')
+  .description('Check component accessibility')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      if (!options.component) {
+        console.log(chalk.red('Error: --component is required'));
+        return;
+      }
+
+      console.log(chalk.blue('♿ Checking Accessibility'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log('');
+
+      const a11y = new AccessibilityDashboard({ directory: projectPath });
+      await a11y.checkComponent(options.component);
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// A11y dashboard command
+program
+  .command('a11y-dashboard')
+  .description('Generate accessibility dashboard')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('♿ Accessibility Dashboard'));
+      console.log('');
+
+      const a11y = new AccessibilityDashboard({ directory: projectPath });
+      await a11y.generateDashboard();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Collaboration init command
+program
+  .command('init-collaboration')
+  .description('Initialize team collaboration features')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      const collab = new TeamCollaboration({ directory: projectPath });
+      await collab.init();
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Request review command
+program
+  .command('request-review')
+  .description('Request component review')
+  .option('-c, --component <name>', 'Component name')
+  .option('-r, --reviewer <name>', 'Reviewer name')
+  .action(async (options) => {
+    try {
+      const collab = new TeamCollaboration();
+      await collab.requestReview(options.component, options.reviewer);
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// i18n init command
+program
+  .command('init-i18n')
+  .description('Initialize i18n support')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('--locales <locales>', 'Comma-separated locales', 'en,es,fr,de')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      const i18n = new I18nSupport({ 
+        directory: projectPath,
+        locales: options.locales.split(',')
+      });
+      await i18n.init();
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Generate locale stories command
+program
+  .command('generate-locale-stories')
+  .description('Generate locale-specific Storybook stories')
+  .option('-c, --component <name>', 'Component name')
+  .action(async (options) => {
+    try {
+      const i18n = new I18nSupport();
+      await i18n.generateLocaleStories(options.component);
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Dark mode detection command
+program
+  .command('detect-dark-mode')
+  .description('Detect dark mode from Figma')
+  .option('-u, --url <url>', 'Figma file URL')
+  .action(async (options) => {
+    try {
+      const config = configManager.loadConfig();
+      const fileKey = extractFileKey(options.url);
+      const figmaClient = new FigmaClient(config.figma.api_token);
+      const figmaData = await figmaClient.getFile(fileKey);
+      
+      const detector = new DarkModeDetector();
+      const result = await detector.detectFromFigma(figmaData);
+      console.log(result);
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Addon marketplace list command
+program
+  .command('addon-list')
+  .description('List available Storybook addons')
+  .action(async () => {
+    try {
+      const marketplace = new AddonMarketplace();
+      await marketplace.list();
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Addon install command
+program
+  .command('addon-install')
+  .description('Install Storybook addon')
+  .option('-a, --addon <name>', 'Addon name')
+  .action(async (options) => {
+    try {
+      const marketplace = new AddonMarketplace();
+      await marketplace.install(options.addon);
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Docs search index command
+program
+  .command('index-docs')
+  .description('Index component documentation for search')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      const search = new DocumentationSearch({ directory: projectPath });
+      await search.index();
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Docs search command
+program
+  .command('search-docs')
+  .description('Search component documentation')
+  .option('-q, --query <text>', 'Search query')
+  .action(async (options) => {
+    try {
+      const search = new DocumentationSearch();
+      await search.search(options.query);
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error.message);
       process.exit(1);
