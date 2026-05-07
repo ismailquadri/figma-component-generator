@@ -49,14 +49,48 @@ class ComponentGenerator {
     // Extract variant information if available
     const variantInfo = this.extractVariantInfo(data);
 
-    // Generate component code based on styling approach
-    if (this.styling === 'tailwind') {
-      result.component = this.generateTailwindComponent(componentName, data, variantInfo);
-    } else if (this.styling === 'css') {
-      result.component = this.generateCSSComponent(componentName, data, variantInfo);
-      result.styles = this.generateCSSStyles(componentName, data, variantInfo);
-    } else if (this.styling === 'styled-components') {
-      result.component = this.generateStyledComponentsComponent(componentName, data, variantInfo);
+    // Detect component type
+    const componentType = this.detectComponentType(componentName, data);
+
+    // Generate component code based on component type and styling approach
+    if (componentType === 'input') {
+      const inputResult = this.generateInputComponent(componentName, data, variantInfo);
+      result.component = inputResult.component;
+      result.styles = inputResult.styles;
+    } else if (componentType === 'card') {
+      const cardResult = this.generateCardComponent(componentName, data, variantInfo);
+      result.component = cardResult.component;
+      result.styles = cardResult.styles;
+    } else if (componentType === 'modal') {
+      const modalResult = this.generateModalComponent(componentName, data, variantInfo);
+      result.component = modalResult.component;
+      result.styles = modalResult.styles;
+    } else if (componentType === 'navigation') {
+      const navResult = this.generateNavigationComponent(componentName, data, variantInfo);
+      result.component = navResult.component;
+      result.styles = navResult.styles;
+    } else {
+      // Default to button generation
+      if (this.styling === 'tailwind') {
+        result.component = this.generateTailwindComponent(componentName, data, variantInfo);
+      } else if (this.styling === 'css') {
+        result.component = this.generateCSSComponent(componentName, data, variantInfo);
+        result.styles = this.generateCSSStyles(componentName, data, variantInfo);
+      } else if (this.styling === 'styled-components') {
+        result.component = this.generateStyledComponentsComponent(componentName, data, variantInfo);
+      } else if (this.styling === 'css-modules') {
+        const cssModulesResult = this.generateCSSModulesComponent(componentName, data, variantInfo);
+        result.component = cssModulesResult.component;
+        result.styles = cssModulesResult.styles;
+      } else if (this.styling === 'stylus') {
+        const stylusResult = this.generateStylusComponent(componentName, data, variantInfo);
+        result.component = stylusResult.component;
+        result.styles = stylusResult.styles;
+      } else if (this.styling === 'less') {
+        const lessResult = this.generateLessComponent(componentName, data, variantInfo);
+        result.component = lessResult.component;
+        result.styles = lessResult.styles;
+      }
     }
 
     // Generate Storybook story
@@ -83,6 +117,1046 @@ class ComponentGenerator {
       availableSizes: data.availableSizes || ['small', 'medium', 'large'],
       variantCount: data.variantCount || 0
     };
+  }
+
+  detectComponentType(componentName, data) {
+    const name = componentName.toLowerCase();
+    
+    // Check component name patterns
+    if (name.includes('input') || name.includes('textfield') || name.includes('text field')) {
+      return 'input';
+    }
+    if (name.includes('card')) {
+      return 'card';
+    }
+    if (name.includes('modal') || name.includes('dialog') || name.includes('popup')) {
+      return 'modal';
+    }
+    if (name.includes('nav') || name.includes('navbar') || name.includes('menu') || name.includes('header')) {
+      return 'navigation';
+    }
+    if (name.includes('button') || name.includes('btn')) {
+      return 'button';
+    }
+    
+    // Check Figma structure hints
+    if (data.type === 'INSTANCE' && data.componentId) {
+      // Could be an instance of a component
+      return 'component-instance';
+    }
+    
+    // Default to button for now
+    return 'button';
+  }
+
+  generateInputComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract design data
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+    const fontSize = data.typography?.fontSize || 16;
+    const fontWeight = data.typography?.fontWeight || 400;
+    const borderRadius = data.borderRadius || 8;
+    const borderColor = data.strokes?.[0]?.color || '#D1D5DB';
+    const borderWidth = data.strokeWeight || 1;
+
+    if (this.framework === 'react') {
+      result.component = `import React from 'react';
+import './${kebabName}.styles.css';
+
+export const ${pascalName} = ({
+  type = 'text',
+  placeholder = '',
+  value = '',
+  onChange,
+  disabled = false,
+  error = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedby,
+  'aria-invalid': ariaInvalid,
+  className = '',
+  id,
+  ...props
+}) => {
+  const baseClasses = '${kebabName}';
+  const typeClasses = \`\${baseClasses}--\${type}\`;
+  const errorClasses = error ? \`\${baseClasses}--error\` : '';
+  const disabledClasses = disabled ? \`\${baseClasses}--disabled\` : '';
+
+  return (
+    <input
+      type={type}
+      className={\`\${baseClasses} \${typeClasses} \${errorClasses} \${disabledClasses} \${className}\`}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      id={id}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedby}
+      aria-invalid={error || ariaInvalid}
+      {...props}
+    />
+  );
+};
+
+export default ${pascalName};`;
+
+      result.styles = `.${kebabName} {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: ${fontWeight};
+  font-size: ${fontSize}px;
+  line-height: 1.5;
+  border-radius: ${borderRadius}px;
+  border: ${borderWidth}px solid ${borderColor};
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.${kebabName}:focus {
+  outline: 2px solid ${primaryColor};
+  outline-offset: 2px;
+}
+
+.${kebabName}:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.${kebabName}:focus-visible {
+  outline: 2px solid ${primaryColor};
+  outline-offset: 2px;
+}
+
+.${kebabName}--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #F3F4F6;
+}
+
+.${kebabName}--error {
+  border-color: #EF4444;
+}
+
+.${kebabName}--error:focus {
+  outline-color: #EF4444;
+}
+
+.${kebabName}--text {
+  /* Default text input styles */
+}
+
+.${kebabName}--email {
+  /* Email input specific styles */
+}
+
+.${kebabName}--password {
+  /* Password input specific styles */
+}
+
+.${kebabName}::placeholder {
+  color: #9CA3AF;
+}`;
+    }
+
+    return result;
+  }
+
+  generateCardComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract design data
+    const bgColor = data.fills?.[0]?.color || '#FFFFFF';
+    const shadow = data.effects?.[0];
+    let boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+    if (shadow && shadow.type === 'drop-shadow') {
+      boxShadow = `${shadow.offset.x}px ${shadow.offset.y}px ${shadow.radius}px ${shadow.color}`;
+    }
+    const borderRadius = data.borderRadius || 12;
+    const padding = data.paddingTop || 16;
+
+    if (this.framework === 'react') {
+      result.component = `import React from 'react';
+import './${kebabName}.styles.css';
+
+export const ${pascalName} = ({
+  children,
+  title,
+  subtitle,
+  actions,
+  variant = 'default',
+  hoverable = false,
+  'aria-label': ariaLabel,
+  className = '',
+  ...props
+}) => {
+  const baseClasses = '${kebabName}';
+  const variantClasses = \`\${baseClasses}--\${variant}\`;
+  const hoverClasses = hoverable ? \`\${baseClasses}--hoverable\` : '';
+
+  return (
+    <div
+      className={\`\${baseClasses} \${variantClasses} \${hoverClasses} \${className}\`}
+      aria-label={ariaLabel}
+      {...props}
+    >
+      {(title || subtitle) && (
+        <div className="${kebabName}__header">
+          {title && <h3 className="${kebabName}__title">{title}</h3>}
+          {subtitle && <p className="${kebabName}__subtitle">{subtitle}</p>}
+        </div>
+      )}
+      {children && <div className="${kebabName}__content">{children}</div>}
+      {actions && <div className="${kebabName}__actions">{actions}</div>}
+    </div>
+  );
+};
+
+export default ${pascalName};`;
+
+      result.styles = `.${kebabName} {
+  background-color: ${bgColor};
+  border-radius: ${borderRadius}px;
+  box-shadow: ${boxShadow};
+  padding: ${padding}px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.${kebabName}__header {
+  margin-bottom: ${padding > 16 ? padding - 8 : 8}px;
+}
+
+.${kebabName}__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.${kebabName}__subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.${kebabName}__content {
+  margin-bottom: ${padding > 16 ? padding - 8 : 8}px;
+}
+
+.${kebabName}__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.${kebabName}--hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.${kebabName}--outlined {
+  background-color: transparent;
+  border: 1px solid #E5E7EB;
+}
+
+.${kebabName}--elevated {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}`;
+    }
+
+    return result;
+  }
+
+  generateModalComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    if (this.framework === 'react') {
+      result.component = `import React, { useEffect } from 'react';
+import './${kebabName}.styles.css';
+
+export const ${pascalName} = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'medium',
+  closeOnOverlayClick = true,
+  'aria-labelledby': ariaLabelledby,
+  'aria-describedby': ariaDescribedby,
+  ...props
+}) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleOverlayClick = (e) => {
+    if (closeOnOverlayClick && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleEscapeKey = (e) => {
+    if (e.key === 'Escape' && onClose) {
+      onClose();
+    }
+  };
+
+  return (
+    <div 
+      className={\`\${kebabName} ${kebabName}--\${size}\`}
+      onKeyDown={handleEscapeKey}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={ariaLabelledby}
+      aria-describedby={ariaDescribedby}
+      {...props}
+    >
+      <div className="${kebabName}__overlay" onClick={handleOverlayClick} />
+      <div className="${kebabName}__container">
+        {title && (
+          <div className="${kebabName}__header">
+            <h2 id={ariaLabelledby} className="${kebabName}__title">{title}</h2>
+            <button 
+              className="${kebabName}__close"
+              onClick={onClose}
+              aria-label="Close modal"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        <div 
+          className="${kebabName}__content}"
+          id={ariaDescribedby}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ${pascalName};`;
+
+      result.styles = `.${kebabName} {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.${kebabName}__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.${kebabName}__container {
+  background: white;
+  border-radius: 12px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+  position: relative;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.${kebabName}__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.${kebabName}__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.${kebabName}__close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.${kebabName}__close:hover {
+  background: #F3F4F6;
+  color: #1a1a1a;
+}
+
+.${kebabName}__content {
+  padding: 20px;
+}
+
+.${kebabName}--small {
+  ${kebabName}__container {
+    max-width: 400px;
+  }
+}
+
+.${kebabName}--medium {
+  ${kebabName}__container {
+    max-width: 600px;
+  }
+}
+
+.${kebabName}--large {
+  ${kebabName}__container {
+    max-width: 800px;
+  }
+}`;
+    }
+
+    return result;
+  }
+
+  generateNavigationComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract design data
+    const bgColor = data.fills?.[0]?.color || '#FFFFFF';
+    const textColor = data.typography?.fontSize ? '#1a1a1a' : '#FFFFFF';
+
+    if (this.framework === 'react') {
+      result.component = `import React, { useState } from 'react';
+import './${kebabName}.styles.css';
+
+export const ${pascalName} = ({
+  logo,
+  links = [],
+  variant = 'default',
+  'aria-label': ariaLabel,
+  className = '',
+  ...props
+}) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  return (
+    <nav 
+      className={\`\${kebabName} \${kebabName}--\${variant} \${className}\`}
+      aria-label={ariaLabel || 'Main navigation'}
+      {...props}
+    >
+      <div className="${kebabName}__container">
+        {logo && <div className="${kebabName}__logo">{logo}</div>}
+        
+        <ul className="${kebabName}__links">
+          {links.map((link, index) => (
+            <li key={index}>
+              <a 
+                href={link.href} 
+                className="${kebabName}__link"
+                target={link.external ? '_blank' : '_self'}
+                rel={link.external ? 'noopener noreferrer' : undefined}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <button 
+          className="${kebabName}__mobile-toggle"
+          onClick={toggleMobileMenu}
+          aria-label="Toggle mobile menu"
+          aria-expanded={isMobileMenuOpen}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </nav>
+  );
+};
+
+export default ${pascalName};`;
+
+      result.styles = `.${kebabName} {
+  background-color: ${bgColor};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.${kebabName}__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+}
+
+.${kebabName}__logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: ${textColor};
+}
+
+.${kebabName}__links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2rem;
+}
+
+.${kebabName}__link {
+  color: ${textColor};
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.${kebabName}__link:hover {
+  opacity: 0.8;
+}
+
+.${kebabName}__mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.${kebabName}__mobile-toggle span {
+  width: 24px;
+  height: 2px;
+  background: ${textColor};
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.${kebabName}__mobile-toggle span:nth-child(2) {
+  width: 16px;
+}
+
+@media (max-width: 768px) {
+  .${kebabName}__links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: ${bgColor};
+    flex-direction: column;
+    padding: 1rem 2rem;
+    gap: 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .${kebabName}__links.open {
+    display: flex;
+  }
+
+  .${kebabName}__mobile-toggle {
+    display: flex;
+  }
+}`;
+    }
+
+    return result;
+  }
+
+  generateCSSModulesComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const camelName = componentName.charAt(0).toLowerCase() + componentName.slice(1);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract real colors from Figma
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+
+    // Extract typography from Figma
+    const fontSize = data.typography?.fontSize || 16;
+    const fontWeight = data.typography?.fontWeight || 600;
+
+    // Extract border radius from Figma
+    const borderRadius = data.borderRadius || 0;
+
+    const variants = variantInfo?.availableVariants || ['primary', 'secondary', 'ghost'];
+    const sizes = variantInfo?.availableSizes || ['small', 'medium', 'large'];
+
+    result.component = `import React from 'react';
+import styles from './${componentName}.module.css';
+
+export const ${pascalName} = ({
+  children,
+  variant = 'primary',
+  size = 'medium',
+  disabled = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedby,
+  'aria-disabled': ariaDisabled,
+  className = '',
+  onClick,
+  ...props
+}) => {
+  const baseClasses = styles.${camelName};
+  const variantClasses = styles[\`\${camelName}--\${variant}\`];
+  const sizeClasses = styles[\`\${camelName}--\${size}\`];
+  const disabledClasses = disabled ? styles[\`\${camelName}--disabled\`] : '';
+
+  return (
+    <button
+      className={\`\${baseClasses} \${variantClasses} \${sizeClasses} \${disabledClasses} \${className}\`}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedby}
+      aria-disabled={disabled || ariaDisabled}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+export default ${pascalName};`;
+
+    result.styles = `.${camelName} {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: ${fontWeight};
+  font-size: ${fontSize}px;
+  line-height: 1.5;
+  border-radius: ${borderRadius}px;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.${camelName}:focus {
+  outline: 2px solid ${primaryColor};
+  outline-offset: 2px;
+}
+
+.${camelName}:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.${camelName}:focus-visible {
+  outline: 2px solid ${primaryColor};
+  outline-offset: 2px;
+}
+
+.${camelName}--primary {
+  background-color: ${primaryColor};
+  color: white;
+}
+
+.${camelName}--primary:hover:not(:disabled) {
+  background-color: ${this.adjustColor(primaryColor, -10)};
+}
+
+.${camelName}--secondary {
+  background-color: #6B7280;
+  color: white;
+}
+
+.${camelName}--secondary:hover:not(:disabled) {
+  background-color: #4B5563;
+}
+
+.${camelName}--ghost {
+  background-color: transparent;
+  color: ${primaryColor};
+}
+
+.${camelName}--ghost:hover:not(:disabled) {
+  background-color: ${this.adjustColor(primaryColor, 90)};
+}
+
+.${camelName}--small {
+  padding: 4px 12px;
+  font-size: ${fontSize - 2}px;
+}
+
+.${camelName}--medium {
+  padding: 8px 16px;
+  font-size: ${fontSize}px;
+}
+
+.${camelName}--large {
+  padding: 12px 24px;
+  font-size: ${fontSize + 2}px;
+}
+
+.${camelName}--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}`;
+
+    return result;
+  }
+
+  generateStylusComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract real colors from Figma
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+
+    // Extract typography from Figma
+    const fontSize = data.typography?.fontSize || 16;
+    const fontWeight = data.typography?.fontWeight || 600;
+
+    // Extract border radius from Figma
+    const borderRadius = data.borderRadius || 0;
+
+    const variants = variantInfo?.availableVariants || ['primary', 'secondary', 'ghost'];
+    const sizes = variantInfo?.availableSizes || ['small', 'medium', 'large'];
+
+    result.component = `import React from 'react';
+import './${kebabName}.styl';
+
+export const ${pascalName} = ({
+  children,
+  variant = 'primary',
+  size = 'medium',
+  disabled = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedby,
+  'aria-disabled': ariaDisabled,
+  className = '',
+  onClick,
+  ...props
+}) => {
+  const baseClasses = '${kebabName}';
+  const variantClasses = \`\${kebabName}--\${variant}\`;
+  const sizeClasses = \`\${kebabName}--\${size}\`;
+  const disabledClasses = disabled ? \`\${kebabName}--disabled\` : '';
+
+  return (
+    <button
+      className={\`\${baseClasses} \${variantClasses} \${sizeClasses} \${disabledClasses} \${className}\`}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedby}
+      aria-disabled={disabled || ariaDisabled}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+export default ${pascalName};`;
+
+    result.styles = `.${kebabName}
+  font-family 'Inter', -apple-system, BlinkMacSystemFont, sans-serif
+  font-weight ${fontWeight}
+  font-size ${fontSize}px
+  line-height 1.5
+  border-radius ${borderRadius}px
+  border none
+  padding 8px 16px
+  cursor pointer
+  transition all 0.2s ease
+
+  &:focus
+    outline 2px solid ${primaryColor}
+    outline-offset 2px
+
+  &:focus:not(:focus-visible)
+    outline none
+
+  &:focus-visible
+    outline 2px solid ${primaryColor}
+    outline-offset 2px
+
+  &--primary
+    background-color ${primaryColor}
+    color white
+
+    &:hover:not(:disabled)
+      background-color ${this.adjustColor(primaryColor, -10)}
+
+  &--secondary
+    background-color #6B7280
+    color white
+
+    &:hover:not(:disabled)
+      background-color #4B5563
+
+  &--ghost
+    background-color transparent
+    color ${primaryColor}
+
+    &:hover:not(:disabled)
+      background-color ${this.adjustColor(primaryColor, 90)}
+
+  &--small
+    padding 4px 12px
+    font-size ${fontSize - 2}px
+
+  &--medium
+    padding 8px 16px
+    font-size ${fontSize}px
+
+  &--large
+    padding 12px 24px
+    font-size ${fontSize + 2}px
+
+  &--disabled
+    opacity 0.5
+    cursor not-allowed`;
+
+    return result;
+  }
+
+  generateLessComponent(componentName, data, variantInfo = null) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract real colors from Figma
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+
+    // Extract typography from Figma
+    const fontSize = data.typography?.fontSize || 16;
+    const fontWeight = data.typography?.fontWeight || 600;
+
+    // Extract border radius from Figma
+    const borderRadius = data.borderRadius || 0;
+
+    const variants = variantInfo?.availableVariants || ['primary', 'secondary', 'ghost'];
+    const sizes = variantInfo?.availableSizes || ['small', 'medium', 'large'];
+
+    result.component = `import React from 'react';
+import './${kebabName}.less';
+
+export const ${pascalName} = ({
+  children,
+  variant = 'primary',
+  size = 'medium',
+  disabled = false,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedby,
+  'aria-disabled': ariaDisabled,
+  className = '',
+  onClick,
+  ...props
+}) => {
+  const baseClasses = '${kebabName}';
+  const variantClasses = \`\${kebabName}--\${variant}\`;
+  const sizeClasses = \`\${kebabName}--\${size}\`;
+  const disabledClasses = disabled ? \`\${kebabName}--disabled\` : '';
+
+  return (
+    <button
+      className={\`\${baseClasses} \${variantClasses} \${sizeClasses} \${disabledClasses} \${className}\`}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedby}
+      aria-disabled={disabled || ariaDisabled}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+export default ${pascalName};`;
+
+    result.styles = `@primary-color: ${primaryColor};
+@font-size: ${fontSize}px;
+@font-weight: ${fontWeight};
+@border-radius: ${borderRadius}px;
+
+.${kebabName} {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: @font-weight;
+  font-size: @font-size;
+  line-height: 1.5;
+  border-radius: @border-radius;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: 2px solid @primary-color;
+    outline-offset: 2px;
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid @primary-color;
+    outline-offset: 2px;
+  }
+
+  &--primary {
+    background-color: @primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: ${this.adjustColor(primaryColor, -10)};
+    }
+  }
+
+  &--secondary {
+    background-color: #6B7280;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: #4B5563;
+    }
+  }
+
+  &--ghost {
+    background-color: transparent;
+    color: @primary-color;
+
+    &:hover:not(:disabled) {
+      background-color: ${this.adjustColor(primaryColor, 90)};
+    }
+  }
+
+  &--small {
+    padding: 4px 12px;
+    font-size: @font-size - 2px;
+  }
+
+  &--medium {
+    padding: 8px 16px;
+    font-size: @font-size;
+  }
+
+  &--large {
+    padding: 12px 24px;
+    font-size: @font-size + 2px;
+  }
+
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}`;
+
+    return result;
   }
 
   generateTailwindComponent(componentName, data, variantInfo = null) {
@@ -534,6 +1608,22 @@ export const Large = {
       .replace(/([a-z])([A-Z])/g, '$1-$2')
       .replace(/[\s_]+/g, '-')
       .toLowerCase();
+  }
+
+  adjustColor(color, amount) {
+    // Simple color adjustment for hover states
+    // This is a basic implementation - for production use a proper color manipulation library
+    const hex = color.replace('#', '');
+    const num = parseInt(hex, 16);
+    let r = (num >> 16) + amount;
+    let g = ((num >> 8) & 0x00FF) + amount;
+    let b = (num & 0x0000FF) + amount;
+
+    r = Math.max(Math.min(255, r), 0);
+    g = Math.max(Math.min(255, g), 0);
+    b = Math.max(Math.min(255, b), 0);
+
+    return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
   }
 
   generateVueComponent(componentName, data) {

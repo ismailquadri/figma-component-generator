@@ -5,13 +5,16 @@ Generate React components from Figma designs automatically. Save hours of manual
 ## Features
 
 - ✅ Generate React, Vue, and Svelte components from Figma designs
-- ✅ Multiple styling approaches (Tailwind, CSS, styled-components)
+- ✅ Multiple component types: Buttons, Inputs, Cards, Modals, Navigation
+- ✅ Multiple styling approaches: Tailwind, CSS, styled-components, CSS Modules, Stylus, Less
 - ✅ TypeScript support
 - ✅ Storybook documentation generation
+- ✅ Storybook auto-setup command
 - ✅ Persistent API token configuration
 - ✅ Design token extraction
 - ✅ Component variants support
 - ✅ Accessibility attributes (ARIA, keyboard navigation)
+- ✅ Intelligent component type detection from Figma names
 - ✅ Intelligent variant detection from Figma component sets
 
 ## Installation
@@ -99,7 +102,51 @@ generate-component generate \
   --url "https://figma.com/file/xxxxx" \
   --name Button \
   --storybook
+
+# Generate with CSS Modules
+generate-component generate \
+  --url "https://figma.com/file/xxxxx" \
+  --name Button \
+  --styling css-modules
+
+# Generate with Stylus
+generate-component generate \
+  --url "https://figma.com/file/xxxxx" \
+  --name Button \
+  --styling stylus
+
+# Generate with Less
+generate-component generate \
+  --url "https://figma.com/file/xxxxx" \
+  --name Button \
+  --styling less
 ```
+
+## Supported Component Types
+
+The generator automatically detects component types based on naming patterns:
+
+### Button
+- Detects: `Button`, `Btn`, `PrimaryButton`, etc.
+- Features: Variants (primary, secondary, ghost), sizes, disabled state, keyboard navigation
+
+### Input
+- Detects: `Input`, `TextField`, `TextInput`, `EmailInput`, etc.
+- Features: Type variants (text, email, password), error states, accessibility attributes, focus states
+
+### Card
+- Detects: `Card`, `ProductCard`, `InfoCard`, etc.
+- Features: Title/subtitle sections, action buttons, hover effects, variant styles (default, outlined, elevated)
+
+### Modal
+- Detects: `Modal`, `Dialog`, `Popup`, etc.
+- Features: Size variants (small, medium, large), overlay click handling, escape key support, accessibility (ARIA)
+
+### Navigation
+- Detects: `Navigation`, `Navbar`, `Menu`, `Header`, etc.
+- Features: Logo, links array, mobile responsive toggle, external link support
+
+The generator intelligently extracts design properties (colors, typography, spacing, borders) from your Figma designs and applies them to the generated components.
 
 ## Configuration
 
@@ -114,6 +161,21 @@ generate-component update-token
 ```bash
 generate-component config-show
 ```
+
+### Initialize Storybook
+
+Automatically set up Storybook in your project with the correct configuration:
+
+```bash
+generate-component init-storybook
+generate-component init-storybook --directory ./my-project --framework react
+```
+
+This will:
+- Install Storybook dependencies
+- Create `.storybook` configuration files
+- Add Storybook scripts to package.json
+- Set up the stories directory structure
 
 ### Config File Location
 

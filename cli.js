@@ -12,6 +12,7 @@ const ComponentGenerator = require('./generator');
 const VersionManager = require('./version-manager');
 const GitHubRepoGenerator = require('./github-generator');
 const HandoffPackageGenerator = require('./handoff-generator');
+const StorybookSetup = require('./storybook-setup');
 
 const configManager = new ConfigManager();
 
@@ -57,7 +58,7 @@ program
         type: 'list',
         name: 'styling',
         message: 'Default styling approach:',
-        choices: ['css', 'tailwind', 'styled-components', 'emotion'],
+        choices: ['css', 'tailwind', 'styled-components', 'emotion', 'css-modules', 'stylus', 'less'],
         default: 'css'
       }
     ]);
@@ -118,7 +119,7 @@ program
   .option('-n, --name <name>', 'Component name')
   .option('-o, --output <dir>', 'Output directory')
   .option('-f, --framework <framework>', 'Framework (react, vue, svelte)')
-  .option('-s, --styling <styling>', 'Styling approach (tailwind, css, styled-components, emotion)')
+  .option('-s, --styling <styling>', 'Styling approach (tailwind, css, styled-components, emotion, css-modules, stylus, less)')
   .option('--storybook', 'Generate Storybook story')
   .option('--typescript', 'Generate TypeScript types')
   .action(async (options) => {
@@ -714,6 +715,30 @@ program
       });
     } else {
       console.log(chalk.red('Error: Use --name <component> to view history or --changelog for full changelog'));
+    }
+  });
+
+// Storybook setup command
+program
+  .command('init-storybook')
+  .description('Initialize Storybook in your project')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-f, --framework <framework>', 'Framework (react, vue, svelte)', 'react')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📚 Setting up Storybook'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Framework: ${options.framework}`));
+      console.log('');
+
+      const setup = new StorybookSetup(projectPath, options.framework);
+      await setup.setup();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
     }
   });
 
