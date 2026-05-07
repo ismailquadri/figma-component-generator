@@ -14,10 +14,19 @@ Generate React components from Figma designs automatically. Save hours of manual
 
 ## Installation
 
+### Install via npm (Recommended)
+
 ```bash
-cd ~/Tools/figma-component-generator
+npm install -g figma-component-generator
+```
+
+### Install from source
+
+```bash
+git clone https://github.com/ismailquadri/figma-component-generator.git
+cd figma-component-generator
 npm install
-npm install -g .
+npm link
 ```
 
 ## Setup
@@ -174,10 +183,25 @@ Make sure the component name matches exactly what's in Figma.
 ### "File not found"
 Check that the Figma URL is correct and you have access to the file.
 
-## License
-
-MIT
-
 ## Contributing
 
-Contributions welcome! Please open an issue or submit a pull request.
+Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on how to contribute to this project.
+
+Please note that this project has a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to abide by its terms.
+
+## License
+
+MIT © [Ismail Quadri](https://github.com/ismailquadri)
+
+## Acknowledgments
+
+- Built with [Figma API](https://www.figma.com/developers/api)
+- Inspired by the need to bridge the gap between design and development
+- Thanks to all contributors who help improve this tool
+
+## Support
+
+- 🐛 [Report bugs](https://github.com/ismailquadri/figma-component-generator/issues)
+- 💡 [Request features](https://github.com/ismailquadri/figma-component-generator/issues)
+- 📖 [Documentation](https://github.com/ismailquadri/figma-component-generator/wiki)
+- 💬 [Discussions](https://github.com/ismailquadri/figma-component-generator/discussions)
