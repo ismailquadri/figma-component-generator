@@ -8,8 +8,15 @@ Generate React components from Figma designs automatically. Save hours of manual
 - ✅ Multiple component types: Buttons, Inputs, Cards, Modals, Navigation
 - ✅ Multiple styling approaches: Tailwind, CSS, styled-components, CSS Modules, Stylus, Less
 - ✅ TypeScript support
-- ✅ Storybook documentation generation
-- ✅ Storybook auto-setup command
+- ✅ Professional Storybook integration with auto-setup
+- ✅ Storybook preset system (React Vite, Next.js, CRA, Vue, Svelte, etc.)
+- ✅ Professional addon configuration (a11y, themes, viewport, docs)
+- ✅ Theme/provider decorator templates
+- ✅ Auto-generated documentation with MDX support
+- ✅ Figma-to-Storybook bridge with design token extraction
+- ✅ CI/CD integration (GitHub Actions for Storybook deployment)
+- ✅ Visual regression testing setup (Chromatic, Percy)
+- ✅ Monorepo support (Nx, Turborepo, Lerna, Yarn Workspaces)
 - ✅ Persistent API token configuration
 - ✅ Design token extraction
 - ✅ Component variants support
@@ -147,6 +154,154 @@ The generator automatically detects component types based on naming patterns:
 - Features: Logo, links array, mobile responsive toggle, external link support
 
 The generator intelligently extracts design properties (colors, typography, spacing, borders) from your Figma designs and applies them to the generated components.
+
+## Professional Storybook Integration
+
+### Initialize Storybook with Auto-Detection
+
+Automatically set up Storybook with project type detection:
+
+```bash
+generate-component init-storybook
+```
+
+This automatically detects your project type (Next.js, CRA, Vite, etc.) and configures Storybook accordingly.
+
+### Storybook Presets
+
+Choose from professional presets for different project types:
+
+```bash
+# React with Vite (default)
+generate-component init-storybook --preset react-vite
+
+# Next.js
+generate-component init-storybook --preset nextjs
+
+# Create React App
+generate-component init-storybook --preset cra
+
+# Vue with Vite
+generate-component init-storybook --preset vue-vite --framework vue
+
+# Svelte with Vite
+generate-component init-storybook --preset svelte-vite --framework svelte
+
+# Full professional setup
+generate-component init-storybook --preset full
+
+# Minimal setup
+generate-component init-storybook --preset minimal
+```
+
+List all available presets:
+
+```bash
+generate-component init-storybook --list-presets
+```
+
+### Professional Features
+
+Include additional professional features:
+
+```bash
+# Complete professional setup with all features
+generate-component init-storybook --preset full --ci --testing --visual --monorepo
+
+# CI/CD integration (GitHub Actions)
+generate-component init-storybook --ci
+
+# Testing configuration
+generate-component init-storybook --testing
+
+# Visual regression testing
+generate-component init-storybook --visual
+
+# Monorepo support (auto-detects Nx, Turborepo, Lerna, etc.)
+generate-component init-storybook --monorepo
+```
+
+### Visual Regression Testing
+
+Set up visual regression testing with Chromatic and Percy:
+
+```bash
+# Chromatic setup
+generate-component init-visual-testing
+
+# Chromatic + Percy setup
+generate-component init-visual-testing --percy
+
+# Custom concurrent builds
+generate-component init-visual-testing --concurrent 8
+```
+
+### Monorepo Support
+
+Set up Storybook for monorepo projects:
+
+```bash
+# Auto-detect monorepo type
+generate-component init-monorepo
+
+# Specify monorepo type
+generate-component init-monorepo --type nx
+generate-component init-monorepo --type turborepo
+generate-component init-monorepo --type lerna
+generate-component init-monorepo --type yarn-workspaces
+```
+
+### Enhanced Story Generation
+
+When generating components with `--storybook`, the tool now:
+
+- **Auto-detects component type** and generates appropriate stories
+- **Extracts Figma metadata** for design tokens and documentation
+- **Includes accessibility parameters** for a11y testing
+- **Generates comprehensive examples** for all variants
+- **Adds proper TypeScript types** for Storybook
+- **Creates responsive viewport configurations**
+- **Integrates Figma design links** in story parameters
+
+```bash
+generate-component generate \
+  --url "https://figma.com/file/xxxxx" \
+  --name Button \
+  --storybook
+```
+
+### Storybook Features
+
+The professional Storybook setup includes:
+
+- **Accessibility Testing**: Integrated axe-core for WCAG compliance
+- **Theme Support**: Dark/light mode with theme switching
+- **Viewport Presets**: Mobile, tablet, desktop breakpoints
+- **Auto-Documentation**: MDX support with design tokens
+- **Figma Integration**: Direct links to Figma designs
+- **Professional Addons**: a11y, themes, viewport, docs, interactions
+- **CI/CD Ready**: GitHub Actions for automated deployment
+- **Visual Testing**: Chromatic/Percy integration
+- **Monorepo Support**: Nx, Turborepo, Lerna, Yarn Workspaces
+
+### Storybook Folder Structure
+
+The setup creates a professional folder structure:
+
+```
+src/
+├── stories/
+│   ├── introduction/      # Introduction and getting started
+│   ├── components/        # Component stories
+│   ├── docs/             # MDX documentation
+│   └── examples/         # Usage examples
+├── components/           # Generated components
+├── decorators/          # Reusable decorators
+│   ├── withTheme.js
+│   ├── withRouter.js
+│   └── withI18n.js
+└── styles/              # Global styles
+```
 
 ## Configuration
 

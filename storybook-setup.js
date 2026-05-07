@@ -2,16 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const { execSync } = require('child_process');
+const StorybookPresets = require('./storybook-presets');
 
 class StorybookSetup {
-  constructor(projectPath, framework) {
+  constructor(projectPath, framework, options = {}) {
     this.projectPath = projectPath;
     this.framework = framework || 'react';
+    this.preset = options.preset || 'react-vite';
+    this.options = options;
     this.storybookDir = path.join(projectPath, '.storybook');
+    this.presets = new StorybookPresets();
   }
 
   async setup() {
-    console.log(chalk.blue('Setting up Storybook...'));
+    console.log(chalk.blue('Setting up Professional Storybook...'));
 
     try {
       // Check if project exists
@@ -27,25 +31,60 @@ class StorybookSetup {
 
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
+      // Detect project type if preset is 'auto'
+      if (this.preset === 'auto') {
+        this.preset = this.detectProjectType(packageJson);
+        console.log(chalk.yellow(`Auto-detected preset: ${this.preset}`));
+      }
+
+      // Get preset configuration
+      const presetConfig = this.presets.getPreset(this.preset);
+      console.log(chalk.yellow(`Using preset: ${presetConfig.name}`));
+      console.log(chalk.gray(`  ${presetConfig.description}`));
+      console.log('');
+
       // Install Storybook dependencies
       console.log(chalk.yellow('Installing Storybook dependencies...'));
-      await this.installDependencies(packageJson);
+      await this.installDependencies(packageJson, presetConfig.dependencies);
 
       // Create .storybook directory and files
       console.log(chalk.yellow('Creating Storybook configuration...'));
-      this.createStorybookConfig();
+      this.createStorybookConfig(presetConfig);
 
       // Update package.json scripts
       this.updatePackageJsonScripts(packageJson);
 
-      // Create stories directory structure
-      this.createStoriesStructure();
+      // Create professional folder structure
+      this.createProfessionalStructure();
+
+      // Create decorator templates
+      this.createDecoratorTemplates();
+
+      // Create CI/CD configuration if requested
+      if (this.options.ci) {
+        this.createCIConfig();
+      }
+
+      // Create testing configuration if requested
+      if (this.options.testing) {
+        this.createTestingConfig();
+      }
+
+      // Create .gitignore for Storybook
+      this.createGitignore();
 
       console.log(chalk.green('✓ Storybook setup completed successfully!'));
       console.log(chalk.cyan('\nNext steps:'));
-      console.log(chalk.cyan('  npm install              - Install Storybook dependencies'));
-      console.log(chalk.cyan('  npm run storybook        - Start Storybook development server'));
-      console.log(chalk.cyan('  npm run build-storybook  - Build Storybook for production'));
+      console.log(chalk.cyan('  npm install                    - Install Storybook dependencies'));
+      console.log(chalk.cyan('  npm run storybook              - Start Storybook development server'));
+      console.log(chalk.cyan('  npm run build-storybook        - Build Storybook for production'));
+      if (this.options.ci) {
+        console.log(chalk.cyan('  npm run test-storybook         - Run Storybook tests'));
+      }
+      console.log(chalk.cyan('\nDocumentation:'));
+      console.log(chalk.cyan('  Stories: src/stories/'));
+      console.log(chalk.cyan('  Components: src/components/'));
+      console.log(chalk.cyan('  Config: .storybook/'));
 
     } catch (error) {
       console.error(chalk.red('✗ Storybook setup failed:'), error.message);
@@ -53,9 +92,32 @@ class StorybookSetup {
     }
   }
 
-  async installDependencies(packageJson) {
-    const dependencies = this.getDependencies();
+  detectProjectType(packageJson) {
+    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
     
+    if (deps.next) {
+      return 'nextjs';
+    }
+    if (deps['react-scripts']) {
+      return 'cra';
+    }
+    if (deps.vite && deps.vue) {
+      return 'vue-vite';
+    }
+    if (deps.vite && deps.svelte) {
+      return 'svelte-vite';
+    }
+    if (deps.vite) {
+      return 'react-vite';
+    }
+    if (deps.webpack) {
+      return 'react-webpack';
+    }
+    
+    return 'react-vite';
+  }
+
+  async installDependencies(packageJson, dependencies) {
     // Add to package.json
     Object.assign(packageJson.devDependencies || {}, dependencies);
     
@@ -69,134 +131,73 @@ class StorybookSetup {
     console.log(chalk.cyan('Please run: npm install'));
   }
 
-  getDependencies() {
-    const baseDependencies = {
-      '@storybook/addon-essentials': '^7.0.0',
-      '@storybook/addon-interactions': '^7.0.0',
-      '@storybook/addon-links': '^7.0.0',
-      '@storybook/blocks': '^7.0.0',
-      '@storybook/testing-library': '^0.0.14',
-      '@storybook/react': '^7.0.0',
-      '@storybook/react-vite': '^7.0.0',
-      'storybook': '^7.0.0'
-    };
-
-    if (this.framework === 'vue') {
-      return {
-        ...baseDependencies,
-        '@storybook/vue3': '^7.0.0',
-        '@storybook/vue3-vite': '^7.0.0'
-      };
-    } else if (this.framework === 'svelte') {
-      return {
-        ...baseDependencies,
-        '@storybook/svelte': '^7.0.0',
-        '@storybook/svelte-vite': '^7.0.0'
-      };
-    }
-
-    return baseDependencies;
-  }
-
-  createStorybookConfig() {
+  createStorybookConfig(presetConfig) {
     // Create .storybook directory
     if (!fs.existsSync(this.storybookDir)) {
       fs.mkdirSync(this.storybookDir, { recursive: true });
     }
 
     // Create main.js
-    const mainConfig = this.generateMainConfig();
     fs.writeFileSync(
       path.join(this.storybookDir, 'main.js'),
-      mainConfig
+      presetConfig.mainConfig
     );
 
     // Create preview.js
-    const previewConfig = this.generatePreviewConfig();
     fs.writeFileSync(
       path.join(this.storybookDir, 'preview.js'),
-      previewConfig
+      presetConfig.previewConfig
+    );
+
+    // Create manager.js for custom manager configuration
+    this.createManagerConfig();
+
+    // Create theme.js for theme configuration
+    this.createThemeConfig();
+  }
+
+  createManagerConfig() {
+    const managerConfig = `import { addons } from '@storybook/addons';
+import { create } from '@storybook/theming';
+
+addons.setConfig({
+  theme: create({
+    base: 'light',
+    brandTitle: 'My Design System',
+    brandUrl: 'https://example.com',
+    brandImage: 'https://example.com/logo.png',
+  }),
+});
+`;
+    
+    fs.writeFileSync(
+      path.join(this.storybookDir, 'manager.js'),
+      managerConfig
     );
   }
 
-  generateMainConfig() {
-    if (this.framework === 'vue') {
-      return `/** @type { import('@storybook/vue3-vite').StorybookConfig } */
-const config = {
-  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)'],
-  addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-  ],
-  framework: {
-    name: '@storybook/vue3-vite',
-    options: {},
-  },
-  docs: {
-    autodocs: 'tag',
-  },
-};
-export default config;
-`;
-    } else if (this.framework === 'svelte') {
-      return `/** @type { import('@storybook/svelte-vite').StorybookConfig } */
-const config = {
-  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)'],
-  addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-  ],
-  framework: {
-    name: '@storybook/svelte-vite',
-    options: {},
-  },
-  docs: {
-    autodocs: 'tag',
-  },
-};
-export default config;
-`;
-    }
+  createThemeConfig() {
+    const themeConfig = `import { create } from '@storybook/theming';
 
-    // React default
-    return `/** @type { import('@storybook/react-vite').StorybookConfig } */
-const config = {
-  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)'],
-  addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-  ],
-  framework: {
-    name: '@storybook/react-vite',
-    options: {},
-  },
-  docs: {
-    autodocs: 'tag',
-  },
-};
-export default config;
-`;
-  }
+export const lightTheme = create({
+  base: 'light',
+  brandTitle: 'My Design System',
+  brandUrl: '/',
+  brandImage: null,
+});
 
-  generatePreviewConfig() {
-    return `/** @type { import('@storybook/react').Preview } */
-const preview = {
-  parameters: {
-    actions: { argTypesRegex: "^on[A-Z].*" },
-    controls: {
-      matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/,
-      },
-    },
-  },
-};
-
-export default preview;
+export const darkTheme = create({
+  base: 'dark',
+  brandTitle: 'My Design System',
+  brandUrl: '/',
+  brandImage: null,
+});
 `;
+    
+    fs.writeFileSync(
+      path.join(this.storybookDir, 'theme.js'),
+      themeConfig
+    );
   }
 
   updatePackageJsonScripts(packageJson) {
@@ -206,6 +207,11 @@ export default preview;
 
     packageJson.scripts['storybook'] = 'storybook dev -p 6006';
     packageJson.scripts['build-storybook'] = 'storybook build';
+    
+    if (this.options.testing) {
+      packageJson.scripts['test-storybook'] = 'test-storybook';
+      packageJson.scripts['chromatic'] = 'chromatic';
+    }
 
     fs.writeFileSync(
       path.join(this.projectPath, 'package.json'),
@@ -213,33 +219,48 @@ export default preview;
     );
   }
 
-  createStoriesStructure() {
+  createProfessionalStructure() {
     const srcPath = path.join(this.projectPath, 'src');
     
     if (!fs.existsSync(srcPath)) {
       fs.mkdirSync(srcPath, { recursive: true });
     }
 
-    // Create stories directory if it doesn't exist
-    const storiesPath = path.join(srcPath, 'stories');
-    if (!fs.existsSync(storiesPath)) {
-      fs.mkdirSync(storiesPath, { recursive: true });
-    }
+    // Create professional folder structure
+    const folders = [
+      'stories',
+      'stories/docs',
+      'stories/components',
+      'stories/examples',
+      'stories/introduction',
+      'components',
+      'styles',
+      'decorators'
+    ];
 
-    // Create a sample story file
-    const sampleStory = this.generateSampleStory();
-    fs.writeFileSync(
-      path.join(storiesPath, 'Introduction.stories.js'),
-      sampleStory
-    );
+    folders.forEach(folder => {
+      const folderPath = path.join(srcPath, folder);
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
+    });
+
+    // Create introduction story
+    this.createIntroductionStory();
+
+    // Create component template
+    this.createComponentTemplate();
+
+    // Create MDX documentation template
+    this.createDocTemplate();
   }
 
-  generateSampleStory() {
-    return `import { Meta, StoryObj } from '@storybook/react';
+  createIntroductionStory() {
+    const introStory = `import { Meta, StoryObj } from '@storybook/react';
 import { Page } from './Page';
 
 const meta: Meta<typeof Page> = {
-  title: 'Example/Page',
+  title: 'Introduction',
   component: Page,
   parameters: {
     layout: 'centered',
@@ -250,10 +271,252 @@ const meta: Meta<typeof Page> = {
 export default meta;
 type Story = StoryObj<typeof Page>;
 
-export const Primary: Story = {
+export const Default: Story = {
   args: {},
 };
 `;
+    
+    fs.writeFileSync(
+      path.join(this.projectPath, 'src/stories/introduction/Introduction.stories.js'),
+      introStory
+    );
+  }
+
+  createComponentTemplate() {
+    const componentTemplate = `import React from 'react';
+import { Meta, StoryObj } from '@storybook/react';
+import { YourComponent } from '../YourComponent';
+
+const meta: Meta<typeof YourComponent> = {
+  title: 'Components/YourComponent',
+  component: YourComponent,
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    // Define your argTypes here for better controls
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof YourComponent>;
+
+export const Primary: Story = {
+  args: {
+    // Define primary variant args
+  },
+};
+
+export const Secondary: Story = {
+  args: {
+    // Define secondary variant args
+  },
+};
+`;
+    
+    fs.writeFileSync(
+      path.join(this.projectPath, 'src/stories/components/ComponentTemplate.stories.js'),
+      componentTemplate
+    );
+  }
+
+  createDocTemplate() {
+    const docTemplate = `import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Design Tokens" />
+
+# Design Tokens
+
+This page documents the design tokens used in this design system.
+
+## Colors
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| primary | #3B82F6 | Primary actions |
+| secondary | #6B7280 | Secondary actions |
+| success | #10B981 | Success states |
+| error | #EF4444 | Error states |
+
+## Typography
+
+| Token | Size | Weight |
+|-------|------|--------|
+| heading-1 | 32px | 600 |
+| heading-2 | 24px | 600 |
+| body | 16px | 400 |
+| small | 14px | 400 |
+
+## Spacing
+
+| Token | Value |
+|-------|-------|
+| xs | 4px |
+| sm | 8px |
+| md | 16px |
+| lg | 24px |
+| xl | 32px |
+`;
+    
+    fs.writeFileSync(
+      path.join(this.projectPath, 'src/stories/docs/DesignTokens.mdx'),
+      docTemplate
+    );
+  }
+
+  createDecoratorTemplates() {
+    const decoratorsDir = path.join(this.projectPath, 'src/decorators');
+    
+    // Theme decorator
+    const themeDecorator = `import React from 'react';
+import { ThemeProvider } from 'your-theme-library';
+
+export const withTheme = (Story) => (
+  <ThemeProvider theme="light">
+    <Story />
+  </ThemeProvider>
+);
+`;
+    
+    fs.writeFileSync(
+      path.join(decoratorsDir, 'withTheme.js'),
+      themeDecorator
+    );
+
+    // Router decorator
+    const routerDecorator = `import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+
+export const withRouter = (Story) => (
+  <BrowserRouter>
+    <Story />
+  </BrowserRouter>
+);
+`;
+    
+    fs.writeFileSync(
+      path.join(decoratorsDir, 'withRouter.js'),
+      routerDecorator
+    );
+
+    // i18n decorator
+    const i18nDecorator = `import React from 'react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '../i18n';
+
+export const withI18n = (Story) => (
+  <I18nextProvider i18n={i18n}>
+    <Story />
+  </I18nextProvider>
+);
+`;
+    
+    fs.writeFileSync(
+      path.join(decoratorsDir, 'withI18n.js'),
+      i18nDecorator
+    );
+  }
+
+  createCIConfig() {
+    const workflowsDir = path.join(this.projectPath, '.github', 'workflows');
+    
+    if (!fs.existsSync(workflowsDir)) {
+      fs.mkdirSync(workflowsDir, { recursive: true });
+    }
+
+    // Create GitHub Actions workflow for Storybook
+    const workflow = `name: Build and Deploy Storybook
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Storybook
+        run: npm run build-storybook
+      
+      - name: Deploy to Storybook (Chromatic)
+        if: github.event_name == 'push'
+        uses: chromaui/action@v1
+        with:
+          projectToken: \${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          token: \${{ secrets.GITHUB_TOKEN }}
+`;
+    
+    fs.writeFileSync(
+      path.join(workflowsDir, 'storybook.yml'),
+      workflow
+    );
+
+    console.log(chalk.yellow('CI/CD configuration created'));
+  }
+
+  createTestingConfig() {
+    // Create test-storybook configuration
+    const testConfig = `module.exports = {
+  stories: [],
+  addons: [],
+  framework: {
+    name: '@storybook/react-vite',
+    options: {},
+  },
+  docs: {
+    autodocs: 'tag',
+  },
+};
+`;
+    
+    fs.writeFileSync(
+      path.join(this.storybookDir, 'test-main.js'),
+      testConfig
+    );
+
+    // Create test-runner configuration
+    const testRunnerConfig = `module.exports = {
+  testRunner: {
+    config: {
+      // Test runner configuration
+    },
+  },
+};
+`;
+    
+    fs.writeFileSync(
+      path.join(this.storybookDir, 'test-runner.js'),
+      testRunnerConfig
+    );
+  }
+
+  createGitignore() {
+    const gitignorePath = path.join(this.projectPath, '.storybook', '.gitignore');
+    
+    const gitignore = `# Storybook build output
+storybook-static
+
+# Storybook temp files
+.node_modules
+`;
+    
+    fs.writeFileSync(gitignorePath, gitignore);
   }
 }
 

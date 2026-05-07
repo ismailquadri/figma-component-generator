@@ -12,23 +12,30 @@ class ComponentGenerator {
     // Use the FigmaClient to extract real design data
     const FigmaClient = require('./figma');
     const ConfigManager = require('./config');
+    const FigmaStorybookBridge = require('./figma-storybook-bridge');
     const configManager = new ConfigManager();
     const configData = configManager.loadConfig();
 
     const figmaClient = new FigmaClient(configData.figma.api_token);
     const componentData = figmaClient.extractComponentData(figmaData, componentName);
+    
+    // Initialize Figma-to-Storybook bridge
+    const figmaBridge = new FigmaStorybookBridge(figmaClient);
+    const figmaMetadata = figmaBridge.extractComponentMetadata(figmaData, componentName);
 
     console.log(chalk.gray(`Extracted data: ${JSON.stringify(componentData, null, 2)}`));
+    console.log(chalk.gray(`Figma metadata: ${JSON.stringify(figmaMetadata, null, 2)}`));
 
     let result = {
       component: '',
       styles: '',
       storybook: '',
-      types: ''
+      types: '',
+      figmaMetadata: figmaMetadata
     };
 
     if (this.framework === 'react') {
-      result = this.generateReactComponent(componentName, componentData);
+      result = this.generateReactComponent(componentName, componentData, figmaMetadata);
     } else if (this.framework === 'vue') {
       result = this.generateVueComponent(componentName, componentData);
     } else if (this.framework === 'svelte') {
@@ -38,7 +45,7 @@ class ComponentGenerator {
     return result;
   }
 
-  generateReactComponent(componentName, data) {
+  generateReactComponent(componentName, data, figmaMetadata = null) {
     const result = {
       component: '',
       styles: '',
@@ -93,9 +100,9 @@ class ComponentGenerator {
       }
     }
 
-    // Generate Storybook story
+    // Generate Storybook story with Figma metadata
     if (this.includeStorybook) {
-      result.storybook = this.generateStorybookStory(componentName, data, variantInfo);
+      result.storybook = this.generateStorybookStory(componentName, data, figmaMetadata);
     }
 
     // Generate TypeScript types
@@ -1518,55 +1525,723 @@ export default ${pascalName};
 `;
   }
 
-  generateStorybookStory(componentName, data) {
+  generateStorybookStory(componentName, data, figmaMetadata = null) {
+    const componentType = this.detectComponentType(componentName, data);
     const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
 
-    return `import { ${pascalName} } from './${componentName}';
+    // Use Figma metadata if available, otherwise use basic generation
+    if (figmaMetadata) {
+      return this.generateEnhancedStory(componentName, data, figmaMetadata, componentType);
+    }
 
-export default {
+    switch (componentType) {
+      case 'input':
+        return this.generateInputStory(componentName, data);
+      case 'card':
+        return this.generateCardStory(componentName, data);
+      case 'modal':
+        return this.generateModalStory(componentName, data);
+      case 'navigation':
+        return this.generateNavigationStory(componentName, data);
+      default:
+        return this.generateButtonStory(componentName, data);
+    }
+  }
+
+  generateEnhancedStory(componentName, data, figmaMetadata, componentType) {
+    const pascalName = this.toPascalCase(componentName);
+    const FigmaStorybookBridge = require('./figma-storybook-bridge');
+    const figmaBridge = new FigmaStorybookBridge();
+    
+    // Generate story parameters from Figma metadata
+    const storyParameters = figmaBridge.generateStoryParameters(figmaMetadata);
+    const designTokensDocs = figmaBridge.generateDesignTokensDocs(figmaMetadata);
+    const enhancedArgTypes = figmaBridge.generateArgTypes(figmaMetadata);
+
+    // Generate appropriate story based on component type
+    let baseStory;
+    switch (componentType) {
+      case 'input':
+        baseStory = this.generateInputStory(componentName, data);
+        break;
+      case 'card':
+        baseStory = this.generateCardStory(componentName, data);
+        break;
+      case 'modal':
+        baseStory = this.generateModalStory(componentName, data);
+        break;
+      case 'navigation':
+        baseStory = this.generateNavigationStory(componentName, data);
+        break;
+      default:
+        baseStory = this.generateButtonStory(componentName, data);
+    }
+
+    // Enhance the story with Figma metadata
+    const enhancedStory = baseStory.replace(
+      /(parameters: \{[^}]+\})/,
+      `parameters: ${JSON.stringify(storyParameters, null, 2).replace(/"/g, "'")}`
+    );
+
+    // Add design tokens documentation
+    const storyWithDocs = enhancedStory.replace(
+      /(export default meta;)/,
+      `$1\n\n${designTokensDocs}`
+    );
+
+    return storyWithDocs;
+  }
+
+  generateButtonStory(componentName, data) {
+    const pascalName = this.toPascalCase(componentName);
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+
+    return `import { Meta, StoryObj } from '@storybook/react';
+import { ${pascalName} } from './${componentName}';
+
+const meta: Meta<typeof ${pascalName}> = {
   title: 'Components/${pascalName}',
   component: ${pascalName},
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: '${pascalName} component with multiple variants and sizes.'
+      }
+    },
+    a11y: {
+      config: {
+        rules: [
+          {
+            id: 'color-contrast',
+            enabled: true
+          },
+          {
+            id: 'button-name',
+            enabled: true
+          }
+        ]
+      }
+    }
+  },
+  tags: ['autodocs'],
   argTypes: {
+    children: {
+      control: 'text',
+      description: 'Button label or content'
+    },
     variant: {
       control: 'select',
       options: ['primary', 'secondary', 'ghost'],
-      description: 'Button variant'
+      description: 'Visual style variant',
+      table: {
+        defaultValue: { summary: 'primary' }
+      }
     },
     size: {
       control: 'select',
       options: ['small', 'medium', 'large'],
-      description: 'Button size'
+      description: 'Button size',
+      table: {
+        defaultValue: { summary: 'medium' }
+      }
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Disable button interaction',
+      table: {
+        defaultValue: { summary: false }
+      }
+    },
+    onClick: {
+      action: 'clicked',
+      description: 'Click handler'
+    },
+    'aria-label': {
+      control: 'text',
+      description: 'Accessibility label'
     }
   }
 };
 
-export const Primary = {
+export default meta;
+type Story = StoryObj<typeof ${pascalName}>;
+
+export const Primary: Story = {
   args: {
     children: 'Primary Button',
     variant: 'primary',
-    size: 'medium'
+    size: 'medium',
+    disabled: false
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Primary button for main actions. Uses the primary color ${primaryColor}.'
+      }
+    }
   }
 };
 
-export const Secondary = {
+export const Secondary: Story = {
   args: {
     children: 'Secondary Button',
     variant: 'secondary',
-    size: 'medium'
+    size: 'medium',
+    disabled: false
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Secondary button for less important actions.'
+      }
+    }
   }
 };
 
-export const Ghost = {
+export const Ghost: Story = {
   args: {
     children: 'Ghost Button',
     variant: 'ghost',
-    size: 'medium'
+    size: 'medium',
+    disabled: false
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Ghost button for subtle actions without background.'
+      }
+    }
   }
 };
 
-export const Small = {
+export const Small: Story = {
   args: {
     children: 'Small Button',
+    variant: 'primary',
+    size: 'small',
+    disabled: false
+  }
+};
+
+export const Large: Story = {
+  args: {
+    children: 'Large Button',
+    variant: 'primary',
+    size: 'large',
+    disabled: false
+  }
+};
+
+export const Disabled: Story = {
+  args: {
+    children: 'Disabled Button',
+    variant: 'primary',
+    size: 'medium',
+    disabled: true
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Disabled state with reduced opacity and no pointer events.'
+      }
+    }
+  }
+};
+
+export const AllVariants: Story = {
+  render: () => (
+    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+      <${pascalName} variant="primary" size="small">Small Primary</${pascalName}>
+      <${pascalName} variant="primary" size="medium">Medium Primary</${pascalName}>
+      <${pascalName} variant="primary" size="large">Large Primary</${pascalName}>
+      <${pascalName} variant="secondary" size="medium">Secondary</${pascalName}>
+      <${pascalName} variant="ghost" size="medium">Ghost</${pascalName}>
+      <${pascalName} variant="primary" size="medium" disabled>Disabled</${pascalName}>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'All button variants and sizes displayed together.'
+      }
+    }
+  }
+};`;
+  }
+
+  generateInputStory(componentName, data) {
+    const pascalName = this.toPascalCase(componentName);
+
+    return `import { Meta, StoryObj } from '@storybook/react';
+import { ${pascalName} } from './${componentName}';
+
+const meta: Meta<typeof ${pascalName}> = {
+  title: 'Components/${pascalName}',
+  component: ${pascalName},
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: '${pascalName} component with validation states and accessibility.'
+      }
+    },
+    a11y: {
+      config: {
+        rules: [
+          {
+            id: 'label',
+            enabled: true
+          },
+          {
+            id: 'color-contrast',
+            enabled: true
+          }
+        ]
+      }
+    }
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    type: {
+      control: 'select',
+      options: ['text', 'email', 'password', 'number', 'tel'],
+      description: 'Input type',
+      table: {
+        defaultValue: { summary: 'text' }
+      }
+    },
+    placeholder: {
+      control: 'text',
+      description: 'Placeholder text'
+    },
+    value: {
+      control: 'text',
+      description: 'Input value'
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Disable input',
+      table: {
+        defaultValue: { summary: false }
+      }
+    },
+    error: {
+      control: 'boolean',
+      description: 'Error state',
+      table: {
+        defaultValue: { summary: false }
+      }
+    },
+    onChange: {
+      action: 'changed',
+      description: 'Change handler'
+    },
+    'aria-label': {
+      control: 'text',
+      description: 'Accessibility label'
+    }
+  }
+};
+
+export default meta;
+type Story = StoryObj<typeof ${pascalName}>;
+
+export const Default: Story = {
+  args: {
+    type: 'text',
+    placeholder: 'Enter text...',
+    disabled: false,
+    error: false
+  }
+};
+
+export const Email: Story = {
+  args: {
+    type: 'email',
+    placeholder: 'Enter email...',
+    disabled: false,
+    error: false
+  }
+};
+
+export const Password: Story = {
+  args: {
+    type: 'password',
+    placeholder: 'Enter password...',
+    disabled: false,
+    error: false
+  }
+};
+
+export const Error: Story = {
+  args: {
+    type: 'text',
+    placeholder: 'Enter text...',
+    disabled: false,
+    error: true
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Error state with visual feedback and accessibility attributes.'
+      }
+    }
+  }
+};
+
+export const Disabled: Story = {
+  args: {
+    type: 'text',
+    placeholder: 'Enter text...',
+    disabled: true,
+    error: false
+  }
+};
+
+export const WithLabel: Story = {
+  render: (args) => (
+    <div>
+      <label htmlFor="input" style={{ display: 'block', marginBottom: '8px' }}>
+        Email Address
+      </label>
+      <${pascalName} id="input" {...args} />
+    </div>
+  ),
+  args: {
+    type: 'email',
+    placeholder: 'your@email.com'
+  }
+};`;
+  }
+
+  generateCardStory(componentName, data) {
+    const pascalName = this.toPascalCase(componentName);
+
+    return `import { Meta, StoryObj } from '@storybook/react';
+import { ${pascalName} } from './${componentName}';
+
+const meta: Meta<typeof ${pascalName}> = {
+  title: 'Components/${pascalName}',
+  component: ${pascalName},
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: '${pascalName} component with header, content, and action sections.'
+      }
+    }
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    title: {
+      control: 'text',
+      description: 'Card title'
+    },
+    subtitle: {
+      control: 'text',
+      description: 'Card subtitle'
+    },
+    variant: {
+      control: 'select',
+      options: ['default', 'outlined', 'elevated'],
+      description: 'Card variant',
+      table: {
+        defaultValue: { summary: 'default' }
+      }
+    },
+    hoverable: {
+      control: 'boolean',
+      description: 'Enable hover effect',
+      table: {
+        defaultValue: { summary: false }
+      }
+    },
+    'aria-label': {
+      control: 'text',
+      description: 'Accessibility label'
+    }
+  }
+};
+
+export default meta;
+type Story = StoryObj<typeof ${pascalName}>;
+
+export const Default: Story = {
+  args: {
+    title: 'Card Title',
+    subtitle: 'Card subtitle text',
+    variant: 'default',
+    hoverable: false,
+    children: <p>Card content goes here.</p>
+  }
+};
+
+export const Outlined: Story = {
+  args: {
+    title: 'Outlined Card',
+    subtitle: 'With border styling',
+    variant: 'outlined',
+    hoverable: false,
+    children: <p>Card content goes here.</p>
+  }
+};
+
+export const Elevated: Story = {
+  args: {
+    title: 'Elevated Card',
+    subtitle: 'With shadow effect',
+    variant: 'elevated',
+    hoverable: false,
+    children: <p>Card content goes here.</p>
+  }
+};
+
+export const Hoverable: Story = {
+  args: {
+    title: 'Hoverable Card',
+    subtitle: 'Try hovering over me',
+    variant: 'default',
+    hoverable: true,
+    children: <p>Card content goes here.</p>
+  }
+};
+
+export const WithActions: Story = {
+  args: {
+    title: 'Card with Actions',
+    subtitle: 'Action buttons example',
+    variant: 'default',
+    hoverable: false,
+    children: <p>Card content goes here.</p>,
+    actions: (
+      <>
+        <button>Cancel</button>
+        <button>Confirm</button>
+      </>
+    )
+  }
+};`;
+  }
+
+  generateModalStory(componentName, data) {
+    const pascalName = this.toPascalCase(componentName);
+
+    return `import { Meta, StoryObj } from '@storybook/react';
+import { useState } from 'react';
+import { ${pascalName} } from './${componentName}';
+
+const meta: Meta<typeof ${pascalName}> = {
+  title: 'Components/${pascalName}',
+  component: ${pascalName},
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: '${pascalName} component with overlay, keyboard support, and accessibility.'
+      }
+    },
+    a11y: {
+      config: {
+        rules: [
+          {
+            id: 'focus-trap',
+            enabled: true
+          },
+          {
+            id: 'role-dialog',
+            enabled: true
+          }
+        ]
+      }
+    }
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    isOpen: {
+      control: 'boolean',
+      description: 'Modal visibility',
+      table: {
+        defaultValue: { summary: false }
+      }
+    },
+    onClose: {
+      action: 'closed',
+      description: 'Close handler'
+    },
+    title: {
+      control: 'text',
+      description: 'Modal title'
+    },
+    size: {
+      control: 'select',
+      options: ['small', 'medium', 'large'],
+      description: 'Modal size',
+      table: {
+        defaultValue: { summary: 'medium' }
+      }
+    },
+    closeOnOverlayClick: {
+      control: 'boolean',
+      description: 'Close on overlay click',
+      table: {
+        defaultValue: { summary: true }
+      }
+    }
+  }
+};
+
+export default meta;
+type Story = StoryObj<typeof ${pascalName}>;
+
+export const Default: Story = {
+  render: (args) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    return (
+      <>
+        <button onClick={() => setIsOpen(true)}>Open Modal</button>
+        <${pascalName}
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          {...args}
+        >
+          <p>Modal content goes here.</p>
+        </${pascalName}>
+      </>
+    );
+  },
+  args: {
+    title: 'Modal Title',
+    size: 'medium',
+    closeOnOverlayClick: true
+  }
+};
+
+export const Small: Story = {
+  render: (args) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    return (
+      <>
+        <button onClick={() => setIsOpen(true)}>Open Small Modal</button>
+        <${pascalName}
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          size="small"
+          {...args}
+        >
+          <p>Small modal content.</p>
+        </${pascalName}>
+      </>
+    );
+  },
+  args: {
+    title: 'Small Modal',
+    size: 'small'
+  }
+};
+
+export const Large: Story = {
+  render: (args) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    return (
+      <>
+        <button onClick={() => setIsOpen(true)}>Open Large Modal</button>
+        <${pascalName}
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          size="large"
+          {...args}
+        >
+          <p>Large modal content with more space.</p>
+        </${pascalName}>
+      </>
+    );
+  },
+  args: {
+    title: 'Large Modal',
+    size: 'large'
+  }
+};`;
+  }
+
+  generateNavigationStory(componentName, data) {
+    const pascalName = this.toPascalCase(componentName);
+
+    return `import { Meta, StoryObj } from '@storybook/react';
+import { ${pascalName} } from './${componentName}';
+
+const meta: Meta<typeof ${pascalName}> = {
+  title: 'Components/${pascalName}',
+  component: ${pascalName},
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: '${pascalName} component with logo, links, and mobile responsive menu.'
+      }
+    }
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    logo: {
+      control: 'text',
+      description: 'Logo text or element'
+    },
+    links: {
+      control: 'object',
+      description: 'Navigation links array'
+    },
+    variant: {
+      control: 'select',
+      options: ['default', 'dark', 'transparent'],
+      description: 'Navigation variant',
+      table: {
+        defaultValue: { summary: 'default' }
+      }
+    }
+  }
+};
+
+export default meta;
+type Story = StoryObj<typeof ${pascalName}>;
+
+const sampleLinks = [
+  { label: 'Home', href: '/' },
+  { label: 'About', href: '/about' },
+  { label: 'Services', href: '/services' },
+  { label: 'Contact', href: '/contact' }
+];
+
+export const Default: Story = {
+  args: {
+    logo: 'MyBrand',
+    links: sampleLinks,
+    variant: 'default'
+  }
+};
+
+export const Dark: Story = {
+  args: {
+    logo: 'MyBrand',
+    links: sampleLinks,
+    variant: 'dark'
+  }
+};
+
+export const WithExternalLinks: Story = {
+  args: {
+    logo: 'MyBrand',
+    links: [
+      ...sampleLinks,
+      { label: 'GitHub', href: 'https://github.com', external: true }
+    ],
+    variant: 'default'
+  }
+};
     variant: 'primary',
     size: 'small'
   }

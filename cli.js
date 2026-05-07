@@ -13,6 +13,8 @@ const VersionManager = require('./version-manager');
 const GitHubRepoGenerator = require('./github-generator');
 const HandoffPackageGenerator = require('./handoff-generator');
 const StorybookSetup = require('./storybook-setup');
+const VisualTestingSetup = require('./visual-testing-config');
+const MonorepoSupport = require('./monorepo-support');
 
 const configManager = new ConfigManager();
 
@@ -721,20 +723,103 @@ program
 // Storybook setup command
 program
   .command('init-storybook')
-  .description('Initialize Storybook in your project')
+  .description('Initialize professional Storybook in your project')
   .option('-d, --directory <dir>', 'Project directory', '.')
   .option('-f, --framework <framework>', 'Framework (react, vue, svelte)', 'react')
+  .option('-p, --preset <preset>', 'Storybook preset (auto, react-vite, react-webpack, nextjs, cra, vue-vite, svelte-vite, minimal, full)', 'auto')
+  .option('--ci', 'Include CI/CD configuration (GitHub Actions)')
+  .option('--testing', 'Include testing configuration')
+  .option('--visual', 'Include visual regression testing setup')
+  .option('--monorepo', 'Include monorepo support')
+  .option('--list-presets', 'List available presets')
+  .action(async (options) => {
+    try {
+      if (options.listPresets) {
+        const StorybookPresets = require('./storybook-presets');
+        const presets = new StorybookPresets();
+        presets.listPresets();
+        return;
+      }
+
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📚 Setting up Professional Storybook'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Framework: ${options.framework}`));
+      console.log(chalk.gray(`Preset: ${options.preset}`));
+      console.log('');
+
+      const setup = new StorybookSetup(projectPath, options.framework, {
+        preset: options.preset,
+        ci: options.ci,
+        testing: options.testing
+      });
+      await setup.setup();
+
+      // Set up visual testing if requested
+      if (options.visual) {
+        console.log('');
+        const visualSetup = new VisualTestingSetup(projectPath);
+        await visualSetup.setup({ percy: true });
+      }
+
+      // Set up monorepo support if requested
+      if (options.monorepo) {
+        console.log('');
+        const monorepoSetup = new MonorepoSupport(projectPath);
+        await monorepo.setup();
+      }
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Visual testing setup command
+program
+  .command('init-visual-testing')
+  .description('Set up visual regression testing (Chromatic, Percy)')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('--percy', 'Include Percy configuration')
+  .option('--concurrent <number>', 'Number of concurrent builds', '4')
   .action(async (options) => {
     try {
       const projectPath = path.resolve(options.directory);
       
-      console.log(chalk.blue('📚 Setting up Storybook'));
+      console.log(chalk.blue('🎨 Setting up Visual Regression Testing'));
       console.log(chalk.gray(`Project: ${projectPath}`));
-      console.log(chalk.gray(`Framework: ${options.framework}`));
       console.log('');
 
-      const setup = new StorybookSetup(projectPath, options.framework);
-      await setup.setup();
+      const setup = new VisualTestingSetup(projectPath);
+      await setup.setup({
+        percy: options.percy,
+        concurrent: parseInt(options.concurrent)
+      });
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Monorepo support command
+program
+  .command('init-monorepo')
+  .description('Set up Storybook for monorepo (Nx, Turborepo, Lerna, Yarn Workspaces)')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-t, --type <type>', 'Monorepo type (auto, nx, turborepo, lerna, yarn-workspaces)', 'auto')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📦 Setting up Monorepo Support'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Type: ${options.type}`));
+      console.log('');
+
+      const setup = new MonorepoSupport(projectPath);
+      await setup.setup({ type: options.type });
 
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error.message);
