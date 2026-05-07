@@ -15,6 +15,15 @@ const HandoffPackageGenerator = require('./handoff-generator');
 const StorybookSetup = require('./storybook-setup');
 const VisualTestingSetup = require('./visual-testing-config');
 const MonorepoSupport = require('./monorepo-support');
+const FigmaRealTimeSync = require('./figma-realtime-sync');
+const ComponentPlayground = require('./component-playground');
+const DesignTokenSync = require('./design-token-sync');
+const DocsSiteGenerator = require('./docs-site-generator');
+const ComponentAnalytics = require('./component-analytics');
+const FigmaPropsMapper = require('./figma-props-mapper');
+const PerformanceDashboard = require('./performance-dashboard');
+const ComponentVersioning = require('./component-versioning');
+const EmbeddableExamples = require('./embeddable-examples');
 
 const configManager = new ConfigManager();
 
@@ -820,6 +829,760 @@ program
 
       const setup = new MonorepoSupport(projectPath);
       await setup.setup({ type: options.type });
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Figma sync setup command
+program
+  .command('sync-setup')
+  .description('Set up real-time Figma synchronization')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-f, --file-key <key>', 'Figma file key')
+  .option('-p, --port <port>', 'Webhook server port', '3000')
+  .option('-w, --webhook-url <url>', 'Custom webhook URL')
+  .option('-s, --secret <secret>', 'Webhook secret (auto-generated if not provided)')
+  .option('--auto-sync', 'Enable automatic sync', true)
+  .option('--slack-webhook <url>', 'Slack webhook for notifications')
+  .option('--discord-webhook <url>', 'Discord webhook for notifications')
+  .action(async (options) => {
+    try {
+      const config = configManager.loadConfig();
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🔄 Setting up Figma Real-Time Sync'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const figmaClient = new FigmaClient(config.figma.api_token);
+      const sync = new FigmaRealTimeSync(figmaClient, projectPath);
+      
+      await sync.setup({
+        fileKey: options.fileKey,
+        port: parseInt(options.port),
+        webhookUrl: options.webhookUrl,
+        secret: options.secret,
+        autoSync: options.autoSync,
+        slackWebhook: options.slackWebhook,
+        discordWebhook: options.discordWebhook
+      });
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Figma sync server command
+program
+  .command('sync-server')
+  .description('Start Figma sync webhook server')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const config = configManager.loadConfig();
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🔄 Starting Figma Sync Server'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const figmaClient = new FigmaClient(config.figma.api_token);
+      const sync = new FigmaRealTimeSync(figmaClient, projectPath);
+      
+      await sync.startServer();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Figma watch command
+program
+  .command('sync')
+  .description('Watch Figma for changes and sync automatically')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('--server', 'Also start webhook server')
+  .action(async (options) => {
+    try {
+      const config = configManager.loadConfig();
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🔄 Starting Figma Watch Mode'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const figmaClient = new FigmaClient(config.figma.api_token);
+      const sync = new FigmaRealTimeSync(figmaClient, projectPath);
+      
+      if (options.server) {
+        await sync.startServer();
+      }
+      
+      await sync.watch();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Playground setup command
+program
+  .command('init-playground')
+  .description('Set up interactive component playground')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-p, --port <port>', 'Playground server port', '3001')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🎮 Setting up Interactive Component Playground'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const playground = new ComponentPlayground(projectPath);
+      await playground.setup({ port: parseInt(options.port) });
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Token sync setup command
+program
+  .command('sync-tokens')
+  .description('Sync design tokens from Figma to code')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-f, --file-key <key>', 'Figma file key')
+  .option('-o, --output <dir>', 'Output directory', './src/styles/tokens')
+  .option('--formats <formats>', 'Output formats (css,scss,js,ts,tailwind,json)', 'css,scss,js,tailwind,json')
+  .option('--watch', 'Watch for changes')
+  .option('--diff', 'Show diff of changes')
+  .option('--backup', 'Create backup before sync')
+  .action(async (options) => {
+    try {
+      const config = configManager.loadConfig();
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🎨 Syncing Design Tokens'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const figmaClient = new FigmaClient(config.figma.api_token);
+      const sync = new DesignTokenSync(figmaClient, projectPath);
+      
+      // Setup if file key provided
+      if (options.fileKey) {
+        await sync.setup({
+          fileKey: options.fileKey,
+          outputDir: options.output,
+          formats: options.formats.split(','),
+          watch: options.watch
+        });
+      }
+      
+      // Perform sync
+      const result = await sync.syncTokens({
+        diff: options.diff,
+        backup: options.backup
+      });
+      
+      if (options.watch) {
+        await sync.watch();
+      } else {
+        console.log(chalk.green('✓ Token sync completed!'));
+      }
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Documentation site setup command
+program
+  .command('init-docs-site')
+  .description('Initialize automated design system documentation site')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-t, --title <title>', 'Documentation site title', 'Design System')
+  .option('--description <description>', 'Site description')
+  .option('--theme <theme>', 'Theme (light, dark)', 'light')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📚 Setting up Design System Documentation Site'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Title: ${options.title}`));
+      console.log(chalk.gray(`Theme: ${options.theme}`));
+      console.log('');
+
+      const generator = new DocsSiteGenerator({
+        directory: projectPath,
+        title: options.title,
+        description: options.description,
+        theme: options.theme
+      });
+      
+      await generator.init();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Analytics setup command
+program
+  .command('init-analytics')
+  .description('Initialize component usage analytics tracking')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-p, --provider <provider>', 'Analytics provider (local, ga, plausible)', 'local')
+  .option('--tracking-id <id>', 'Tracking ID for GA or Plausible')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📊 Setting up Component Usage Analytics'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Provider: ${options.provider}`));
+      console.log('');
+
+      const analytics = new ComponentAnalytics({
+        directory: projectPath,
+        provider: options.provider,
+        trackingId: options.trackingId
+      });
+      
+      await analytics.init();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Analytics report command
+program
+  .command('analytics-report')
+  .description('Generate component usage analytics report')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-f, --format <format>', 'Report format (json, csv)', 'json')
+  .option('-o, --output <file>', 'Output file path')
+  .option('--start-date <date>', 'Start date (YYYY-MM-DD)')
+  .option('--end-date <date>', 'End date (YYYY-MM-DD)')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📊 Generating Analytics Report'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Format: ${options.format}`));
+      console.log('');
+
+      const analytics = new ComponentAnalytics({ directory: projectPath });
+      const report = await analytics.generateReport({
+        format: options.format,
+        startDate: options.startDate,
+        endDate: options.endDate
+      });
+      
+      if (options.output) {
+        await fs.writeFile(options.output, report);
+        console.log(chalk.green(`✓ Report saved to ${options.output}`));
+      } else {
+        console.log(report);
+      }
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Analytics scan command
+program
+  .command('analytics-scan')
+  .description('Scan project for component usage')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🔍 Scanning Project for Component Usage'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const analytics = new ComponentAnalytics({ directory: projectPath });
+      await analytics.scanProject();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Props mapping command
+program
+  .command('map-props')
+  .description('Auto-map Figma component properties to React props')
+  .option('-u, --url <url>', 'Figma file URL')
+  .option('-f, --file-id <id>', 'Figma file ID')
+  .option('-c, --component-id <id>', 'Component ID (maps single component)')
+  .option('-a, --all', 'Map all components in the file')
+  .option('-o, --output <dir>', 'Output directory', './src/components')
+  .option('--typescript', 'Generate TypeScript types', true)
+  .option('--validation', 'Generate validation schemas', true)
+  .action(async (options) => {
+    try {
+      const config = configManager.loadConfig();
+
+      // Validate API token
+      if (!config.figma.api_token) {
+        console.log(chalk.red('❌ No API token found. Run "generate-component setup" first.'));
+        process.exit(1);
+      }
+
+      // Get file ID
+      let fileId = options.fileId;
+      if (!fileId && options.url) {
+        fileId = extractFileKey(options.url);
+      } else if (!fileId) {
+        console.log(chalk.red('Error: --file-id or --url is required'));
+        return;
+      }
+
+      const outputDir = options.output;
+      
+      console.log(chalk.blue('🎯 Mapping Figma Component Properties'));
+      console.log(chalk.gray(`File ID: ${fileId}`));
+      console.log(chalk.gray(`Output: ${outputDir}`));
+      console.log('');
+
+      const figmaClient = new FigmaClient(config.figma.api_token);
+      const mapper = new FigmaPropsMapper(figmaClient, {
+        outputDir,
+        typescript: options.typescript,
+        validation: options.validation
+      });
+
+      if (options.all) {
+        await mapper.mapAllComponents(fileId);
+      } else if (options.componentId) {
+        await mapper.mapComponentProps(fileId, options.componentId);
+      } else {
+        console.log(chalk.red('Error: Use --component-id to map a single component or --all to map all components'));
+      }
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Performance dashboard setup command
+program
+  .command('init-performance-dashboard')
+  .description('Initialize component performance monitoring dashboard')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-p, --port <port>', 'Dashboard port', '3002')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('⚡ Setting up Performance Dashboard'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Port: ${options.port}`));
+      console.log('');
+
+      const dashboard = new PerformanceDashboard({
+        directory: projectPath,
+        port: parseInt(options.port)
+      });
+      
+      await dashboard.init();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Performance analysis command
+program
+  .command('analyze-performance')
+  .description('Analyze component performance metrics')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name to analyze')
+  .option('--bundle', 'Run bundle analysis')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('⚡ Analyzing Performance'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const dashboard = new PerformanceDashboard({ directory: projectPath });
+      
+      if (options.bundle) {
+        await dashboard.runBundleAnalysis();
+      } else if (options.component) {
+        await dashboard.analyzeComponent(options.component);
+      } else {
+        console.log(chalk.red('Error: Use --component to analyze a specific component or --bundle for bundle analysis'));
+      }
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Start performance dashboard command
+program
+  .command('start-performance-dashboard')
+  .description('Start the performance dashboard web server')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🚀 Starting Performance Dashboard'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const dashboard = new PerformanceDashboard({ directory: projectPath });
+      await dashboard.startDashboard();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Versioning init command
+program
+  .command('init-versioning')
+  .description('Initialize component versioning system')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📦 Setting up Component Versioning'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log('');
+
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      await versioning.init();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Version component command
+program
+  .command('version')
+  .description('Version a component with semantic versioning')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name')
+  .option('-t, --type <type>', 'Version type (major, minor, patch)', 'patch')
+  .option('--changes <changes>', 'Comma-separated list of changes')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      if (!options.component) {
+        console.log(chalk.red('Error: --component is required'));
+        return;
+      }
+
+      console.log(chalk.blue('📦 Versioning Component'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log(chalk.gray(`Type: ${options.type}`));
+      console.log('');
+
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      
+      const changes = options.changes ? options.changes.split(',').map(c => c.trim()) : [];
+      await versioning.versionComponent(options.component, options.type, changes);
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Migration guide command
+program
+  .command('migration-guide')
+  .description('Generate or view migration guide between versions')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name')
+  .option('--from <version>', 'From version')
+  .option('--to <version>', 'To version')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      if (!options.component || !options.from || !options.to) {
+        console.log(chalk.red('Error: --component, --from, and --to are required'));
+        return;
+      }
+
+      console.log(chalk.blue('📋 Migration Guide'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log(chalk.gray(`From: ${options.from}`));
+      console.log(chalk.gray(`To: ${options.to}`));
+      console.log('');
+
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      await versioning.compareVersions(options.component, options.from, options.to);
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Compare versions command
+program
+  .command('compare-versions')
+  .description('Compare two component versions')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name')
+  .option('--from <version>', 'From version')
+  .option('--to <version>', 'To version')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      if (!options.component || !options.from || !options.to) {
+        console.log(chalk.red('Error: --component, --from, and --to are required'));
+        return;
+      }
+
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      await versioning.compareVersions(options.component, options.from, options.to);
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Rollback command
+program
+  .command('rollback')
+  .description('Rollback a component to a previous version')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name')
+  .option('--to <version>', 'Target version')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      if (!options.component || !options.to) {
+        console.log(chalk.red('Error: --component and --to are required'));
+        return;
+      }
+
+      console.log(chalk.blue('⏪ Rolling Back Component'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log(chalk.gray(`To: ${options.to}`));
+      console.log('');
+
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      await versioning.rollbackComponent(options.component, options.to);
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// List versions command
+program
+  .command('list-versions')
+  .description('List all component versions')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      await versioning.listAllVersions();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Generate changelog command
+program
+  .command('generate-changelog')
+  .description('Generate full component changelog')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-o, --output <file>', 'Output file path')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('📝 Generating Changelog'));
+      console.log('');
+
+      const versioning = new ComponentVersioning({ directory: projectPath });
+      const changelog = await versioning.generateFullChangelog();
+      
+      if (options.output) {
+        await fs.writeFile(options.output, changelog);
+        console.log(chalk.green(`✓ Changelog saved to ${options.output}`));
+      } else {
+        console.log(changelog);
+      }
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Embeddable examples init command
+program
+  .command('init-embed-examples')
+  .description('Initialize embeddable component examples system')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-o, --output <dir>', 'Output directory', './examples')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      console.log(chalk.blue('🎬 Setting up Embeddable Examples'));
+      console.log(chalk.gray(`Project: ${projectPath}`));
+      console.log(chalk.gray(`Output: ${options.output}`));
+      console.log('');
+
+      const examples = new EmbeddableExamples({
+        directory: projectPath,
+        outputDir: options.output
+      });
+      
+      await examples.init();
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Generate embed example command
+program
+  .command('embed-example')
+  .description('Generate embeddable component example')
+  .option('-d, --directory <dir>', 'Project directory', '.')
+  .option('-c, --component <name>', 'Component name')
+  .option('-p, --platform <platform>', 'Platform (iframe, codesandbox, stackblitz)', 'iframe')
+  .option('--props <props>', 'Component props as JSON string')
+  .action(async (options) => {
+    try {
+      const projectPath = path.resolve(options.directory);
+      
+      if (!options.component) {
+        console.log(chalk.red('Error: --component is required'));
+        return;
+      }
+
+      console.log(chalk.blue('🎬 Generating Embeddable Example'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log(chalk.gray(`Platform: ${options.platform}`));
+      console.log('');
+
+      const examples = new EmbeddableExamples({ directory: projectPath });
+      
+      const props = options.props ? JSON.parse(options.props) : {};
+      await examples.generateExample(options.component, options.platform, props);
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Generate embed code command
+program
+  .command('generate-embed-code')
+  .description('Generate embed code for a component')
+  .option('-c, --component <name>', 'Component name')
+  .option('-p, --platform <platform>', 'Platform (iframe, codesandbox, stackblitz)', 'iframe')
+  .option('--props <props>', 'Component props as JSON string')
+  .action(async (options) => {
+    try {
+      if (!options.component) {
+        console.log(chalk.red('Error: --component is required'));
+        return;
+      }
+
+      console.log(chalk.blue('📋 Generating Embed Code'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log(chalk.gray(`Platform: ${options.platform}`));
+      console.log('');
+
+      const examples = new EmbeddableExamples();
+      
+      const props = options.props ? JSON.parse(options.props) : {};
+      const embedCode = await examples.generateEmbedCode(options.component, options.platform, props);
+      
+      console.log('Embed Code:');
+      console.log('---');
+      console.log(embedCode);
+      console.log('---');
+      console.log('');
+      console.log('Copy this code to embed the component in your website.');
+
+    } catch (error) {
+      console.error(chalk.red('❌ Error:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Generate shareable URL command
+program
+  .command('shareable-url')
+  .description('Generate shareable URL for component example')
+  .option('-c, --component <name>', 'Component name')
+  .option('-p, --platform <platform>', 'Platform (iframe, codesandbox, stackblitz)', 'iframe')
+  .option('--props <props>', 'Component props as JSON string')
+  .action(async (options) => {
+    try {
+      if (!options.component) {
+        console.log(chalk.red('Error: --component is required'));
+        return;
+      }
+
+      console.log(chalk.blue('🔗 Generating Shareable URL'));
+      console.log(chalk.gray(`Component: ${options.component}`));
+      console.log(chalk.gray(`Platform: ${options.platform}`));
+      console.log('');
+
+      const examples = new EmbeddableExamples();
+      
+      const props = options.props ? JSON.parse(options.props) : {};
+      const url = await examples.generateShareableUrl(options.component, options.platform, props);
+      
+      console.log('Shareable URL:');
+      console.log(url);
+      console.log('');
+      console.log('Share this URL to let others view the component example.');
 
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error.message);
