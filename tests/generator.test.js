@@ -116,4 +116,88 @@ describe('ComponentGenerator', () => {
       expect(generator.toPascalCase('my button')).toBe('MyButton');
     });
   });
+
+  describe('Vue Component Generation', () => {
+    it('should generate Vue component with Tailwind styling', () => {
+      const generator = new ComponentGenerator({
+        framework: 'vue',
+        styling: 'tailwind'
+      });
+
+      const mockData = {
+        fills: [{ color: '#3B82F6' }],
+        typography: { fontSize: 16, fontWeight: 600 },
+        borderRadius: 8
+      };
+
+      const result = generator.generateVueComponent('Button', mockData);
+
+      expect(result.component).toContain('<script setup>');
+      expect(result.component).toContain('<template>');
+      expect(result.component).toContain('defineProps');
+      expect(result.component).toContain('<slot />');
+    });
+
+    it('should generate Vue component with CSS styling', () => {
+      const generator = new ComponentGenerator({
+        framework: 'vue',
+        styling: 'css'
+      });
+
+      const mockData = {
+        fills: [{ color: '#3B82F6' }],
+        typography: { fontSize: 16, fontWeight: 600 },
+        borderRadius: 8
+      };
+
+      const result = generator.generateVueComponent('Button', mockData);
+
+      expect(result.component).toContain('<script setup>');
+      expect(result.component).toContain('<template>');
+      expect(result.styles).toBeTruthy();
+      expect(result.styles).toContain('.button');
+    });
+  });
+
+  describe('Svelte Component Generation', () => {
+    it('should generate Svelte component with Tailwind styling', () => {
+      const generator = new ComponentGenerator({
+        framework: 'svelte',
+        styling: 'tailwind'
+      });
+
+      const mockData = {
+        fills: [{ color: '#3B82F6' }],
+        typography: { fontSize: 16, fontWeight: 600 },
+        borderRadius: 8
+      };
+
+      const result = generator.generateSvelteComponent('Button', mockData);
+
+      expect(result.component).toContain('<script>');
+      expect(result.component).toContain('export let variant');
+      expect(result.component).toContain('<slot />');
+      expect(result.component).toContain('on:click');
+    });
+
+    it('should generate Svelte component with CSS styling', () => {
+      const generator = new ComponentGenerator({
+        framework: 'svelte',
+        styling: 'css'
+      });
+
+      const mockData = {
+        fills: [{ color: '#3B82F6' }],
+        typography: { fontSize: 16, fontWeight: 600 },
+        borderRadius: 8
+      };
+
+      const result = generator.generateSvelteComponent('Button', mockData);
+
+      expect(result.component).toContain('<script>');
+      expect(result.component).toContain('export let variant');
+      expect(result.styles).toBeTruthy();
+      expect(result.styles).toContain('.button');
+    });
+  });
 });

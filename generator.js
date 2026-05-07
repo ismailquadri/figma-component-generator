@@ -29,6 +29,10 @@ class ComponentGenerator {
 
     if (this.framework === 'react') {
       result = this.generateReactComponent(componentName, componentData);
+    } else if (this.framework === 'vue') {
+      result = this.generateVueComponent(componentName, componentData);
+    } else if (this.framework === 'svelte') {
+      result = this.generateSvelteComponent(componentName, componentData);
     }
 
     return result;
@@ -530,6 +534,284 @@ export const Large = {
       .replace(/([a-z])([A-Z])/g, '$1-$2')
       .replace(/[\s_]+/g, '-')
       .toLowerCase();
+  }
+
+  generateVueComponent(componentName, data) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const variantInfo = this.extractVariantInfo(data);
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract design data
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+    const fontSize = data.typography?.fontSize || 16;
+    const fontWeight = data.typography?.fontWeight || 600;
+    const borderRadius = data.borderRadius || 0;
+
+    // Use variant info if available
+    const variants = variantInfo?.availableVariants || ['primary', 'secondary', 'ghost'];
+    const sizes = variantInfo?.availableSizes || ['small', 'medium', 'large'];
+    const defaultVariant = variants[0];
+    const defaultSize = sizes[1] || 'medium';
+
+    if (this.styling === 'tailwind') {
+      const tailwindFontSize = this.getTailwindFontSize(fontSize);
+      const tailwindFontWeight = this.getTailwindFontWeight(fontWeight);
+      const tailwindBorderRadius = this.getTailwindBorderRadius(borderRadius);
+
+      result.component = `<script setup>
+import { ref } from 'vue';
+
+const props = defineProps({
+  variant: {
+    type: String,
+    default: '${defaultVariant}'
+  },
+  size: {
+    type: String,
+    default: '${defaultSize}'
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  ariaLabel: {
+    type: String,
+    default: ''
+  },
+  ariaDescribedby: {
+    type: String,
+    default: ''
+  }
+});
+
+const emit = defineEmits(['click']);
+</script>
+
+<template>
+  <button
+    :class="[
+      '${tailwindFontWeight} ${tailwindFontSize} ${tailwindBorderRadius}',
+      'transition-colors cursor-pointer',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+      variantClasses[variant],
+      sizeClasses[size],
+      disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+    ]"
+    :disabled="disabled"
+    :aria-label="ariaLabel"
+    :aria-describedby="ariaDescribedby"
+    :aria-disabled="disabled"
+    @click="emit('click', $event)"
+  >
+    <slot />
+  </button>
+</template>
+
+<script>
+export default {
+  name: '${pascalName}',
+  computed: {
+    variantClasses() {
+      return {
+        '${this.getTailwindColor(primaryColor)} text-white hover:opacity-90': this.variant === '${variants[0]}',
+        'bg-gray-200 text-gray-900 hover:bg-gray-300': this.variant === '${variants[1] || 'secondary'}',
+        'bg-transparent text-gray-700 hover:bg-gray-100': this.variant === '${variants[2] || 'ghost'}'
+      };
+    },
+    sizeClasses() {
+      return {
+        'px-3 py-1.5 text-sm': this.size === 'small',
+        'px-4 py-2 text-base': this.size === 'medium',
+        'px-6 py-3 text-lg': this.size === 'large'
+      };
+    }
+  }
+};
+</script>`;
+    } else if (this.styling === 'css') {
+      result.component = `<script setup>
+import { ref } from 'vue';
+
+const props = defineProps({
+  variant: {
+    type: String,
+    default: '${defaultVariant}'
+  },
+  size: {
+    type: String,
+    default: '${defaultSize}'
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  ariaLabel: {
+    type: String,
+    default: ''
+  },
+  ariaDescribedby: {
+    type: String,
+    default: ''
+  }
+});
+
+const emit = defineEmits(['click']);
+</script>
+
+<template>
+  <button
+    :class="[baseClasses, variantClasses, sizeClasses, disabledClasses]"
+    :disabled="disabled"
+    :aria-label="ariaLabel"
+    :aria-describedby="ariaDescribedby"
+    :aria-disabled="disabled"
+    @click="emit('click', $event)"
+  >
+    <slot />
+  </button>
+</template>
+
+<script>
+export default {
+  name: '${pascalName}',
+  computed: {
+    baseClasses() {
+      return '${kebabName}';
+    },
+    variantClasses() {
+      return \`\${this.baseClasses}--\${this.variant}\`;
+    },
+    sizeClasses() {
+      return \`\${this.baseClasses}--\${this.size}\`;
+    },
+    disabledClasses() {
+      return this.disabled ? \`\${this.baseClasses}--disabled\` : '';
+    }
+  }
+};
+</script>`;
+
+      result.styles = this.generateCSSStyles(componentName, data, variantInfo);
+    }
+
+    return result;
+  }
+
+  generateSvelteComponent(componentName, data) {
+    const result = {
+      component: '',
+      styles: '',
+      storybook: '',
+      types: ''
+    };
+
+    const variantInfo = this.extractVariantInfo(data);
+    const pascalName = this.toPascalCase(componentName);
+    const kebabName = this.toKebabCase(componentName);
+
+    // Extract design data
+    const primaryColor = data.fills?.[0]?.color || '#3B82F6';
+    const fontSize = data.typography?.fontSize || 16;
+    const fontWeight = data.typography?.fontWeight || 600;
+    const borderRadius = data.borderRadius || 0;
+
+    // Use variant info if available
+    const variants = variantInfo?.availableVariants || ['primary', 'secondary', 'ghost'];
+    const sizes = variantInfo?.availableSizes || ['small', 'medium', 'large'];
+    const defaultVariant = variants[0];
+    const defaultSize = sizes[1] || 'medium';
+
+    if (this.styling === 'tailwind') {
+      const tailwindFontSize = this.getTailwindFontSize(fontSize);
+      const tailwindFontWeight = this.getTailwindFontWeight(fontWeight);
+      const tailwindBorderRadius = this.getTailwindBorderRadius(borderRadius);
+
+      result.component = `<script>
+  export let variant = '${defaultVariant}';
+  export let size = '${defaultSize}';
+  export let disabled = false;
+  export let ariaLabel = '';
+  export let ariaDescribedby = '';
+
+  import { createEventDispatcher } from 'svelte';
+  const dispatch = createEventDispatcher();
+
+  $: variantClasses = {
+    '${this.getTailwindColor(primaryColor)} text-white hover:opacity-90': variant === '${variants[0]}',
+    'bg-gray-200 text-gray-900 hover:bg-gray-300': variant === '${variants[1] || 'secondary'}',
+    'bg-transparent text-gray-700 hover:bg-gray-100': variant === '${variants[2] || 'ghost'}'
+  };
+
+  $: sizeClasses = {
+    'px-3 py-1.5 text-sm': size === 'small',
+    'px-4 py-2 text-base': size === 'medium',
+    'px-6 py-3 text-lg': size === 'large'
+  };
+
+  $: disabledClasses = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
+
+  function handleClick(e) {
+    if (!disabled) {
+      dispatch('click', e);
+    }
+  }
+<\/script>
+
+<button
+  class="${tailwindFontWeight} ${tailwindFontSize} ${tailwindBorderRadius} transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 {variantClasses[variant]} {sizeClasses[size]} {disabledClasses}"
+  {disabled}
+  {ariaLabel}
+  aria-describedby={ariaDescribedby}
+  aria-disabled={disabled}
+  on:click={handleClick}
+>
+  <slot />
+</button>`;
+    } else if (this.styling === 'css') {
+      result.component = `<script>
+  export let variant = '${defaultVariant}';
+  export let size = '${defaultSize}';
+  export let disabled = false;
+  export let ariaLabel = '';
+  export let ariaDescribedby = '';
+
+  import { createEventDispatcher } from 'svelte';
+  const dispatch = createEventDispatcher();
+
+  $: baseClasses = '${kebabName}';
+  $: variantClasses = \`\${baseClasses}--\${variant}\`;
+  $: sizeClasses = \`\${baseClasses}--\${size}\`;
+  $: disabledClasses = disabled ? \`\${baseClasses}--disabled\` : '';
+
+  function handleClick(e) {
+    if (!disabled) {
+      dispatch('click', e);
+    }
+  }
+<\/script>
+
+<button
+  class="{baseClasses} {variantClasses} {sizeClasses} {disabledClasses}"
+  {disabled}
+  {ariaLabel}
+  aria-describedby={ariaDescribedby}
+  aria-disabled={disabled}
+  on:click={handleClick}
+>
+  <slot />
+</button>`;
+
+      result.styles = this.generateCSSStyles(componentName, data, variantInfo);
+    }
+
+    return result;
   }
 
   getTailwindColor(hex) {

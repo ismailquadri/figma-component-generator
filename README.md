@@ -4,13 +4,15 @@ Generate React components from Figma designs automatically. Save hours of manual
 
 ## Features
 
-- ✅ Generate React components from Figma designs
+- ✅ Generate React, Vue, and Svelte components from Figma designs
 - ✅ Multiple styling approaches (Tailwind, CSS, styled-components)
 - ✅ TypeScript support
 - ✅ Storybook documentation generation
 - ✅ Persistent API token configuration
 - ✅ Design token extraction
 - ✅ Component variants support
+- ✅ Accessibility attributes (ARIA, keyboard navigation)
+- ✅ Intelligent variant detection from Figma component sets
 
 ## Installation
 
@@ -70,23 +72,32 @@ generate-component generate
 ### Examples
 
 ```bash
-# Generate with Tailwind CSS
+# Generate React component with Tailwind CSS
 generate-component generate \
   --url "https://figma.com/file/xxxxx" \
   --name Button \
+  --framework react \
   --styling tailwind
 
-# Generate with styled-components and TypeScript
+# Generate Vue component with CSS
 generate-component generate \
   --url "https://figma.com/file/xxxxx" \
   --name Card \
+  --framework vue \
+  --styling css
+
+# Generate Svelte component with styled-components
+generate-component generate \
+  --url "https://figma.com/file/xxxxx" \
+  --name Modal \
+  --framework svelte \
   --styling styled-components \
   --typescript
 
 # Generate with Storybook
 generate-component generate \
   --url "https://figma.com/file/xxxxx" \
-  --name Modal \
+  --name Button \
   --storybook
 ```
 
@@ -164,13 +175,12 @@ Generated components support:
 
 ## Roadmap
 
-- [ ] Support for more component types (inputs, cards, modals)
-- [ ] Design token extraction to separate files
-- [ ] Component variant detection from Figma
-- [ ] Responsive design generation
-- [ ] Accessibility attributes
-- [ ] Vue and Svelte support
-- [ ] Multiple framework export
+- [ ] Support for more component types (inputs, cards, modals, navigation)
+- [ ] Responsive design generation from Figma frames
+- [ ] Figma plugin for direct export
+- [ ] Enhanced Storybook integration
+- [ ] More styling frameworks (CSS Modules, Stylus, Less)
+- [ ] Asset export (images, icons, fonts)
 
 ## Troubleshooting
 
