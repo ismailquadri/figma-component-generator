@@ -1372,23 +1372,23 @@ For questions or issues:
       name: this.projectName.toLowerCase().replace(/\s+/g, '-'),
       version: this.version,
       description: `Design system for ${this.clientName}`,
-      main: "index.html",
+      main: 'index.html',
       scripts: {
-        "dev": "npx serve",
-        "build": "echo 'Build script can be customized'",
-        "test": "echo 'Add your test command here'"
+        'dev': 'npx serve',
+        'build': 'echo \'Build script can be customized\'',
+        'test': 'echo \'Add your test command here\''
       },
       keywords: [
-        "design-system",
-        "react",
-        "components",
-        "ui",
-        "figma"
+        'design-system',
+        'react',
+        'components',
+        'ui',
+        'figma'
       ],
       author: this.designerName,
-      license: "MIT",
+      license: 'MIT',
       devDependencies: {
-        "serve": "^14.0.0"
+        'serve': '^14.0.0'
       }
     };
 
@@ -1414,11 +1414,11 @@ For questions or issues:
       documentation: ['index.html', 'README.md', 'INSTALLATION.md', 'API.md', 'EXAMPLES.md'],
       tokens: ['design-tokens.json', 'design-tokens.css'],
       instructions: [
-        "1. Open index.html to view interactive documentation",
-        "2. Read INSTALLATION.md for setup instructions",
-        "3. Copy src/ folder to your project",
-        "4. Import and use components",
-        "5. Contact designer for questions"
+        '1. Open index.html to view interactive documentation',
+        '2. Read INSTALLATION.md for setup instructions',
+        '3. Copy src/ folder to your project',
+        '4. Import and use components',
+        '5. Contact designer for questions'
       ]
     };
 

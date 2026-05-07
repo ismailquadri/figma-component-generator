@@ -40,8 +40,8 @@ class GitHubRepoGenerator {
     console.log('');
     console.log('Next steps:');
     console.log(`  cd ${this.repoName}`);
-    console.log(`  git remote add origin <your-github-repo-url>`);
-    console.log(`  git push -u origin main`);
+    console.log('  git remote add origin <your-github-repo-url>');
+    console.log('  git push -u origin main');
   }
 
   async createProjectStructure() {
@@ -96,27 +96,27 @@ class GitHubRepoGenerator {
         const componentData = figmaClient.extractComponentData(figmaData, component.name);
         const componentCode = generator.generate(component.name, componentData);
 
-      // Write files
-      const componentDir = path.join(this.projectDir, 'src/components');
-      await fs.writeFile(
-        path.join(componentDir, `${component.name}.jsx`),
-        componentCode.component
-      );
-      await fs.writeFile(
-        path.join(componentDir, `${component.name}.styles.css`),
-        componentCode.styles
-      );
-      await fs.writeFile(
-        path.join(componentDir, `${component.name}.stories.jsx`),
-        componentCode.storybook
-      );
-      await fs.writeFile(
-        path.join(componentDir, `${component.name}.types.ts`),
-        componentCode.types
-      );
+        // Write files
+        const componentDir = path.join(this.projectDir, 'src/components');
+        await fs.writeFile(
+          path.join(componentDir, `${component.name}.jsx`),
+          componentCode.component
+        );
+        await fs.writeFile(
+          path.join(componentDir, `${component.name}.styles.css`),
+          componentCode.styles
+        );
+        await fs.writeFile(
+          path.join(componentDir, `${component.name}.stories.jsx`),
+          componentCode.storybook
+        );
+        await fs.writeFile(
+          path.join(componentDir, `${component.name}.types.ts`),
+          componentCode.types
+        );
 
-      // Save version
-      await versionManager.saveComponentVersion(component.name, componentData, componentCode);
+        // Save version
+        await versionManager.saveComponentVersion(component.name, componentData, componentCode);
       } catch (error) {
         console.log(chalk.yellow(`  ⚠ Skipped ${component.name}: ${error.message}`));
       }

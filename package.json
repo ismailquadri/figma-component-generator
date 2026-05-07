@@ -9,7 +9,9 @@
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "figma",
@@ -28,6 +30,7 @@
     "inquirer": "^8.2.5"
   },
   "devDependencies": {
+    "eslint": "^10.3.0",
     "jest": "^30.3.0"
   }
 }

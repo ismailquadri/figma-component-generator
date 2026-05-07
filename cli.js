@@ -308,26 +308,26 @@ program
       console.log(chalk.yellow('Exporting tokens...'));
 
       switch (format) {
-        case 'json':
-          await exporter.exportJSON(path.join(outputDir, 'design-tokens.json'));
-          break;
-        case 'css':
-          await exporter.exportCSSVariables(path.join(outputDir, 'design-tokens.css'));
-          break;
-        case 'scss':
-          await exporter.exportSCSS(path.join(outputDir, 'design-tokens.scss'));
-          break;
-        case 'js':
-          await exporter.exportJavaScript(path.join(outputDir, 'design-tokens.js'));
-          break;
-        case 'ts':
-          await exporter.exportTypeScript(path.join(outputDir, 'design-tokens.ts'));
-          break;
-        case 'tailwind':
-          await exporter.exportTailwind(path.join(outputDir, 'tailwind.config.js'));
-          break;
-        default:
-          throw new Error(`Unsupported format: ${format}`);
+      case 'json':
+        await exporter.exportJSON(path.join(outputDir, 'design-tokens.json'));
+        break;
+      case 'css':
+        await exporter.exportCSSVariables(path.join(outputDir, 'design-tokens.css'));
+        break;
+      case 'scss':
+        await exporter.exportSCSS(path.join(outputDir, 'design-tokens.scss'));
+        break;
+      case 'js':
+        await exporter.exportJavaScript(path.join(outputDir, 'design-tokens.js'));
+        break;
+      case 'ts':
+        await exporter.exportTypeScript(path.join(outputDir, 'design-tokens.ts'));
+        break;
+      case 'tailwind':
+        await exporter.exportTailwind(path.join(outputDir, 'tailwind.config.js'));
+        break;
+      default:
+        throw new Error(`Unsupported format: ${format}`);
       }
 
       console.log(chalk.green(`✓ Tokens exported to ${outputDir}`));
@@ -513,9 +513,9 @@ program
       
       changes.forEach(change => {
         const icon = change.type === 'color' ? '🎨' : 
-                     change.type === 'typography' ? '🔤' : 
-                     change.type === 'spacing' ? '📐' : 
-                     change.type === 'size' ? '📏' : '📝';
+          change.type === 'typography' ? '🔤' : 
+            change.type === 'spacing' ? '📐' : 
+              change.type === 'size' ? '📏' : '📝';
         
         console.log(`${icon} ${change.type.toUpperCase()}: ${change.message}`);
         
@@ -646,8 +646,8 @@ program
       
       components.forEach(comp => {
         const statusColor = comp.status === 'approved' ? chalk.green : 
-                          comp.status === 'review' ? chalk.yellow : 
-                          comp.status === 'deprecated' ? chalk.red : chalk.gray;
+          comp.status === 'review' ? chalk.yellow : 
+            comp.status === 'deprecated' ? chalk.red : chalk.gray;
         
         console.log(`${statusColor(comp.status.padEnd(12))} ${chalk.white(comp.name)} v${comp.version}`);
       });
@@ -677,7 +677,7 @@ program
       
       changeLog.forEach(entry => {
         const typeColor = entry.type === 'initial' ? chalk.green : 
-                          entry.type === 'update' ? chalk.yellow : chalk.gray;
+          entry.type === 'update' ? chalk.yellow : chalk.gray;
         
         console.log(`${typeColor(entry.type.toUpperCase())} ${chalk.white(entry.component)} v${entry.version}`);
         console.log(chalk.gray(`  ${entry.message}`));
@@ -701,7 +701,7 @@ program
       
       history.versions.forEach(version => {
         const typeColor = version.changes.type === 'initial' ? chalk.green : 
-                          version.changes.type === 'update' ? chalk.yellow : chalk.gray;
+          version.changes.type === 'update' ? chalk.yellow : chalk.gray;
         
         console.log(`${typeColor(`v${version.version}`)} ${version.changes.message}`);
         console.log(chalk.gray(`  ${new Date(version.timestamp).toLocaleString()}`));

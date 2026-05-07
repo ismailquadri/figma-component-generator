@@ -68,7 +68,7 @@ class FigmaClient {
     }
 
     if (!component) {
-      throw new Error(`No components found in Figma file. Please check the file contains components.`);
+      throw new Error('No components found in Figma file. Please check the file contains components.');
     }
 
     console.log(chalk.gray(`Found component: ${component.name}`));

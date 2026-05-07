@@ -269,11 +269,11 @@ export default ${pascalName};
     styles += `  font-size: ${fontSize}px;\n`;
     styles += `  line-height: ${lineHeight};\n`;
     styles += `  border-radius: ${borderRadius}px;\n`;
-    styles += `  border: none;\n`;
-    styles += `  cursor: pointer;\n`;
-    styles += `  transition: all 0.2s ease;\n`;
+    styles += '  border: none;\n';
+    styles += '  cursor: pointer;\n';
+    styles += '  transition: all 0.2s ease;\n';
     styles += `  padding: ${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px;\n`;
-    styles += `}\n\n`;
+    styles += '}\n\n';
 
     // Generate styles for each variant
     data.variants.forEach(variant => {
@@ -282,12 +282,12 @@ export default ${pascalName};
 
       styles += `.${kebabName}--${variantName} {\n`;
       styles += `  background-color: ${variantColor};\n`;
-      styles += `  color: white;\n`;
-      styles += `}\n\n`;
+      styles += '  color: white;\n';
+      styles += '}\n\n';
 
       styles += `.${kebabName}--${variantName}:hover {\n`;
-      styles += `  opacity: 0.9;\n`;
-      styles += `}\n\n`;
+      styles += '  opacity: 0.9;\n';
+      styles += '}\n\n';
     });
 
     return styles;
