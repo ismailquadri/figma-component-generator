@@ -1,0 +1,79 @@
+.button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.5;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 8px 16px;
+  box-shadow: none;
+}
+
+/* Accessibility: Focus styles for keyboard navigation */
+.button:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+.button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Accessibility: Disabled state */
+.button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.button--primary {
+  background-color: #3B82F6;
+  color: white;
+}
+
+.button--primary:hover:not(.button--disabled) {
+  background-color: #2563EB;
+  transform: translateY(-1px);
+}
+
+.button--secondary {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+
+.button--secondary:hover:not(.button--disabled) {
+  background-color: #D1D5DB;
+  transform: translateY(-1px);
+}
+
+.button--ghost {
+  background-color: transparent;
+  color: #374151;
+  border: 1px solid #3B82F6;
+}
+
+.button--ghost:hover:not(.button--disabled) {
+  background-color: #F3F4F6;
+}
+
+.button--small {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.button--medium {
+  padding: 8px 16px;
+  font-size: 16px;
+}
+
+.button--large {
+  padding: 12px 24px;
+  font-size: 18px;
+}

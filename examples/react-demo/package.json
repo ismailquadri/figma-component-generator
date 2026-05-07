@@ -1,0 +1,19 @@
+{
+  "name": "figma-component-generator-demo",
+  "version": "1.0.0",
+  "description": "Demo project for Figma Component Generator",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.3.9"
+  }
+}

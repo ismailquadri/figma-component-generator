@@ -1,0 +1,116 @@
+.App {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.App-header {
+  background: white;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.App-header h1 {
+  margin: 0 0 0.5rem 0;
+  color: #1a1a1a;
+}
+
+.App-header p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.App-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.demo-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.demo-description {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.button-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.button-group {
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.button-group h3 {
+  margin: 0 0 1rem 0;
+  color: #1a1a1a;
+}
+
+.button-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.info-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.info-section h2 {
+  margin: 0 0 1rem 0;
+  color: #1a1a1a;
+}
+
+.info-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-section li {
+  padding: 0.5rem 0;
+  color: #374151;
+}
+
+.cta-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cta-section h2 {
+  margin: 0 0 1rem 0;
+  color: #1a1a1a;
+}
+
+.cta-section p {
+  margin: 0 0 1rem 0;
+  color: #6b7280;
+}
+
+.code-block {
+  display: block;
+  background: #1a1a1a;
+  color: #10B981;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: auto;
+}
